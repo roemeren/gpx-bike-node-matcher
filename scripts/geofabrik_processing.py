@@ -8,9 +8,9 @@ from tqdm import tqdm
 
 # geoprocessing
 SCRIPTS_FOLDER = "scripts"
-node_width = 3
-input_gpkg = "data/intermediate/rcn_output.gpkg"
-tqdm_default = {"mininterval": 0.1, "miniters": 1}
+NODE_WIDTH = 3
+INPUT_GPKG = "data/intermediate/rcn_output.gpkg"
+TQDM_DEFAULT = {"mininterval": 0.1, "miniters": 1}
 
 def parse_and_filter_tags(tag_string, tags_to_keep=None):
     """
@@ -66,7 +66,7 @@ def enrich_with_osm_ids(
     gdf_point: gpd.GeoDataFrame,
     max_dist: float = 20.0,
     node_width: int = 3,
-    tqdm_params: dict = tqdm_default
+    tqdm_params: dict = TQDM_DEFAULT
 ):
     """
     Enrich segment MultiLineStrings with osm_id_from and osm_id_to using buffer intersection.
@@ -186,9 +186,9 @@ def process_osm_data(tqdm_params):
         )
 
     # Read from geopackage
-    print(f"[INFO] Reading GeoPackage: {input_gpkg}")
-    gdf_multiline = gpd.read_file(input_gpkg, layer=0)
-    gdf_point = gpd.read_file(input_gpkg, layer=1)
+    print(f"[INFO] Reading GeoPackage: {INPUT_GPKG}")
+    gdf_multiline = gpd.read_file(INPUT_GPKG, layer=0)
+    gdf_point = gpd.read_file(INPUT_GPKG, layer=1)
     print(f"[INFO] Loaded {len(gdf_multiline)} multilines and {len(gdf_point)} points.")
 
     # List of tags you want to keep
@@ -214,12 +214,12 @@ def process_osm_data(tqdm_params):
     print("[INFO] Enriching multilines with OSM node IDs...")
     gdf_multiline_projected, gdf_point_projected = \
         enrich_with_osm_ids(gdf_multiline_projected, gdf_point_projected, 
-                            buffer_distance, node_width, tqdm_params)
+                            BUFFER_DISTANCE_M, NODE_WIDTH, tqdm_params)
     print("[INFO] Enrichment completed.")
 
     # Simplify geometry (with tolerance in m) & add segment length
     # Note: only keeping relevant attribute columns doesn't make much difference
-    gdf_multiline_projected['geometry'] = gdf_multiline_projected['geometry'].simplify(tolerance=simplify_tolerance, preserve_topology=True)
+    gdf_multiline_projected['geometry'] = gdf_multiline_projected['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_M, preserve_topology=True)
     gdf_multiline_projected["length_km"] = gdf_multiline_projected.geometry.length / 1000.0
 
     # Convert the enriched result back to WGS84
@@ -235,16 +235,16 @@ def process_osm_data(tqdm_params):
     # compared to shapefiles there is no truncation of column names but takes longer
     print("[INFO] Saving outputs...")
     # main outputs
-    gdf_multiline.to_file(multiline_geojson, driver='GeoJSON')
-    gdf_multiline_projected.to_parquet(multiline_parquet_proj, engine="pyarrow")
-    gdf_point_projected.to_parquet(point_parquet_proj, engine="pyarrow")
+    gdf_multiline.to_file(MULTILINE_GEOJSON_PATH, driver='GeoJSON')
+    gdf_multiline_projected.to_parquet(MULTILINE_PROJECTED_PARQUET_PATH, engine="pyarrow")
+    gdf_point_projected.to_parquet(POINT_PROJECTED_PARQUET_PATH, engine="pyarrow")
     print("[INFO] All outputs saved successfully.")
 
 if __name__ == "__main__":
     current_os = platform.system()
     if current_os == "Windows":
         # Local usage (more frequent updates)
-        tqdm_params = tqdm_default
+        tqdm_params = TQDM_DEFAULT
     else:
         # GitHub Actions / CI (less frequent updates)
         tqdm_params = dict(mininterval=3.0, miniters=50) 

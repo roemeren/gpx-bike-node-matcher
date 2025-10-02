@@ -1,62 +1,31 @@
 from core.common import *
+from app.constants import *
 from app.geoprocessing import *
 from app.utils import *
 import json
 import base64
 import threading
-import datetime
 import psutil
 from dash import no_update, Dash, html, dcc, Output, Input, State, dash_table
 import dash_bootstrap_components as dbc
 import dash_leaflet as dl
 from dash.exceptions import PreventUpdate
-from dash_extensions.javascript import Namespace
+from dash import callback_context as ctx
 
-# for debugging (usage: trigger = ctx.triggered_id)
-from dash import callback_context as ctx  # or dash.ctx
-
-color_network = '#7f8c8d'
-color_gpx_1 = '#FC4C02'
-color_gpx_2 = '#D62728'
-color_gpx_selected = '#A3FF12'
-color_processing = '#343a40'
-color_highlight_segment = "red"
-color_highlight_node = "purple"
-min_zoom_points = 11
-initial_center =  [50.65, 4.45]
-initial_zoom = 8
-date_picker_min_date = datetime.date(2010, 1, 1)
-date_picker_max_date = datetime.date.today()
-
-# segment layer rendering
-weight_classes = [1, 5, 10, 20]  # thresholds for counts
-weights = [2, 4, 6, 8, 10]       # corresponding line weights
-color_segment = '#33A7AA'        # fixed color (alternatives: #78A2D2)
-
-# gpx layer rendering
-_tooltips_html = {}
-KEEP_SELECTION_ACTIVE = True
-
-# Ensure static folder exists
+# --- initialize static folder ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
 
-# Load bike network GeoDataFrames (for processing)
-bike_network_seg = gpd.read_parquet(multiline_parquet_proj)
-bike_network_node = gpd.read_parquet(point_parquet_proj)
+# --- module-level state ---
+_tooltips_html = {}
+_processing_thread = None
 
-# Load simplified bike network GeoJSON lines (for mapping)
-with open(multiline_geojson , "r") as f:
+# --- load data ---
+bike_network_seg = gpd.read_parquet(MULTILINE_PROJECTED_PARQUET_PATH)
+bike_network_node = gpd.read_parquet(POINT_PROJECTED_PARQUET_PATH)
+with open(MULTILINE_GEOJSON_PATH , "r") as f:
    geojson_network = json.load(f)
 
-# If needed apply custom settings for debug mode (e.g. limit resources)
-DEBUG_MODE = True
-
-# Access JS functions in assets/ and make them callable from Python
-# Source: https://www.dash-leaflet.com/docs/func_props
-ns = Namespace("dashExtensions", "default")
-
-SELECTED_KEY = "track_uid"  # change if you want a different identifier
-
+# --- initialize app ---
 # Themes: see https://www.dash-bootstrap-components.com/docs/themes/explorer/
 app = Dash(__name__, external_stylesheets=[dbc.themes.ZEPHYR])
 server = app.server
@@ -104,7 +73,7 @@ app.layout = dbc.Container(
                             "padding": "5px 10px",
                             "borderRadius": "5px",
                             "fontFamily": "monospace",
-                            "color": color_processing,
+                            "color": COLOR_PROCESSING,
                             "fontSize": "0.95rem"
                         }
                     ),
@@ -191,7 +160,7 @@ app.layout = dbc.Container(
                                 dbc.Label("From", html_for="start-date-picker"),
                                 dcc.DatePickerSingle(
                                     id="start-date-picker",
-                                    date=date_picker_min_date,
+                                    date=DATE_PICKER_MIN_DATE,
                                     display_format="DD/MM/YYYY",
                                     month_format="MMMM YYYY",
                                     style={"height": "40px", "zIndex": 9999, "position": "relative"}
@@ -206,7 +175,7 @@ app.layout = dbc.Container(
                                 dbc.Label("To", html_for="end-date-picker"),
                                 dcc.DatePickerSingle(
                                     id="end-date-picker",
-                                    date=date_picker_max_date,
+                                    date=DATE_PICKER_MAX_DATE,
                                     display_format="DD/MM/YYYY",
                                     month_format="MMMM YYYY",
                                     style={"height": "40px", "zIndex": 9999, "position": "relative"}
@@ -234,8 +203,8 @@ app.layout = dbc.Container(
                     ], className="mb-2", align="center"),
                     # Map
                     dl.Map(
-                        center=initial_center, 
-                        zoom=initial_zoom,
+                        center=INITIAL_CENTER, 
+                        zoom=INITIAL_ZOOM,
                         style={"width": "100%", "height": "500px"},
                         children=[
                             # https://www.dash-leaflet.com/components/controls/layers_control (v1.1.2)
@@ -264,7 +233,7 @@ app.layout = dbc.Container(
                                         dl.GeoJSON(
                                             data=geojson_network,
                                             id='geojson-network',
-                                            options=dict(style=dict(color=color_network, weight=1, opacity=0.6))
+                                            options=dict(style=dict(color=COLOR_NETWORK, weight=1, opacity=0.6))
                                         ), 
                                         name="Bike Node Network", 
                                         checked=False,
@@ -278,7 +247,7 @@ app.layout = dbc.Container(
                                             hideout=dict(
                                                 selected_id=None,
                                                 selected_key=SELECTED_KEY,
-                                                selected_color=color_gpx_selected
+                                                selected_color=COLOR_GPX_SELECTED
                                             )
                                         ),
                                         name="GPX Tracks",
@@ -295,7 +264,7 @@ app.layout = dbc.Container(
                             dl.GeoJSON(
                                 id="layer-segments",
                                 style=ns("segmentStyle"),
-                                hideout=dict(weight_classes=weight_classes, weights=weights, color=color_segment),
+                                hideout=dict(weight_classes=WEIGHT_CLASSES_SEGMENT, weights=WEIGHTS_SEGMENT, color=COLOR_SEGMENT),
                             ),
                             dl.GeoJSON(
                                 id="layer-nodes",
@@ -333,7 +302,7 @@ app.layout = dbc.Container(
                                             'border': 'thin lightgrey solid'
                                         },
                                         style_header={
-                                            'backgroundColor': color_segment,
+                                            'backgroundColor': COLOR_SEGMENT,
                                             'fontWeight': 'bold',
                                             'color': 'white',
                                             'textAlign': 'center',
@@ -420,9 +389,6 @@ app.layout = dbc.Container(
 )
 
 # ---------- Callbacks ----------
-# initialize module-level background processing thread before callback runs
-_processing_thread = None
-
 @app.callback(
     Output("upload-ready", "data"),
     Input("upload-zip", "contents"),
@@ -633,7 +599,7 @@ def filter_data(store, start_date, end_date):
             "Segment ",
             row["ref"],
             {
-                "Visits (Tracks)": row["count_track"],
+                "Visits": row["count_track"],
                 "First visit": row["first_date"],
                 "Last visit": row["last_date"],
                 "Length": f'{row["length_km"]:.1f} km',
@@ -665,7 +631,7 @@ def filter_data(store, start_date, end_date):
             "Node ",
             row["rcn_ref"],
             {
-                "Visits (GPX)": row["count_track"],
+                "Visits": row["count_track"],
                 "First visit": row["first_date"],
                 "Last visit": row["last_date"],
             }
@@ -694,7 +660,7 @@ def filter_data(store, start_date, end_date):
     Output("layer-gpx", "data"),
     Input("geojson-store-filtered", "data"),
 )
-def update_lines(filtered_data):
+def update_line_layers(filtered_data):
     """Render filtered bike segments and GPX tracks on the map."""
     if not filtered_data:
         return None, None
@@ -770,7 +736,8 @@ def update_tables(filtered_data):
     # also clear selection when user modifies filters
     Input("table-segments-agg", "data"),
 )
-def unselect_all_seg(*_):
+def unselect_all_segments(*_):
+    """Clear all selected rows in the segments table when triggered."""
     return []
 
 @app.callback(
@@ -780,14 +747,16 @@ def unselect_all_seg(*_):
     Input("table-segments-agg", "data"),
 )
 def unselect_all_nodes(*_):
+    """Clear all selected rows in the nodes table when triggered."""
     return []
 
 @app.callback(
     Output("browse-info", "children"),
-    Input("upload-zip", "contents"), # input required (also in def)
+    Input("upload-zip", "contents"),
     State('upload-zip', 'filename')
 )
 def show_info(_, f):
+    """Display selected filename from upload component (if available)"""
     if f is None:
         return "No file selected"
     return f"Selected file: {f}"
@@ -800,15 +769,8 @@ def show_info(_, f):
     prevent_initial_call=True
 )
 def reset_map(n_clicks):
-    """Recenter the map to its initial center and zoom level.
-
-    Args:
-        n_clicks (int): Number of times the recenter button was clicked.
-
-    Returns:
-        list, int, str: Default center [lat, lon], default zoom, and updated key.
-    """
-    return initial_center, initial_zoom, f"map-{n_clicks}"
+    """Recenter the map to its initial center and zoom level."""
+    return INITIAL_CENTER, INITIAL_ZOOM, f"map-{n_clicks}"
 
 @app.callback(
     Output("layer-selected-segments", "children"),
@@ -817,7 +779,7 @@ def reset_map(n_clicks):
     State("geojson-store-filtered", "data"),
 )
 def highlight_segments(selected_rows, table_data, filtered_data):
-    """Highlight selected segments on the map."""
+    """Highlight selected segments on the map"""
     if not selected_rows or not filtered_data \
         or "segments" not in filtered_data or not table_data:
         return None
@@ -841,7 +803,7 @@ def highlight_segments(selected_rows, table_data, filtered_data):
     # Return GeoJSON layer for all selected segments
     return dl.GeoJSON(
         data=gdf_highlight.__geo_interface__,
-        options=dict(style=dict(color=color_highlight_segment, weight=8)),
+        options=dict(style=dict(color=COLOR_HIGHLIGHT_SEGMENT, weight=8)),
         zoomToBounds=True,
     )
 
@@ -852,7 +814,7 @@ def highlight_segments(selected_rows, table_data, filtered_data):
     State("geojson-store-filtered", "data"),
 )
 def highlight_segments_from_nodes(selected_rows, table_data, filtered_data):
-    """Highlight segments connected to selected nodes on the map."""
+    """Highlight segments connected to selected nodes on the map"""
     if not selected_rows or not filtered_data \
         or "segments" not in filtered_data or not table_data:
         return None
@@ -877,7 +839,7 @@ def highlight_segments_from_nodes(selected_rows, table_data, filtered_data):
     # Return GeoJSON layer with blue highlight
     return dl.GeoJSON(
         data=gdf_highlight.__geo_interface__,
-        options=dict(style=dict(color=color_highlight_node, weight=8)),
+        options=dict(style=dict(color=COLOR_HIGHLIGHT_NODE, weight=8)),
         zoomToBounds=True,
     )
 
@@ -888,6 +850,7 @@ def highlight_segments_from_nodes(selected_rows, table_data, filtered_data):
     Input("layer-gpx", "data"),
 )
 def toggle_track_focus(hover_enabled, gpx_geojson):
+    """Toggle GPX track hover style and zoom behavior"""
     if not gpx_geojson:
         # no track layer available yet -> do nothing
         raise PreventUpdate
@@ -906,6 +869,7 @@ def toggle_track_focus(hover_enabled, gpx_geojson):
     Input("checkbox-show-hover", "value")
 )
 def update_selected_track(layer_click, map_click, checkbox):
+    """Update the dcc.Store storing the selected GPX track"""
     if checkbox == []:
         # Focus Track not active
         return None
@@ -927,7 +891,7 @@ def update_selected_track(layer_click, map_click, checkbox):
     elif any("map" in item for item in triggers):
         # user either clicked on the same feature or outside the layer
         # (trigger: only ['map.clickData'] )
-        if KEEP_SELECTION_ACTIVE:
+        if KEEP_TRACK_SELECTION_ACTIVE:
             # keep selection until new feature is clicked or Track Focus is deactivated
             return selected_id
         # check if user clicked close enough to the same feature to keep it active
@@ -946,11 +910,15 @@ def update_selected_track(layer_click, map_click, checkbox):
     Input("layer-gpx", "data"),
 )
 def update_gpx_layer_hideout(selected_id, checkbox_value, base_layer, current_hideout, _):
+    """Update the GPX layer's hideout dict to control attributes based on current state."""
     # update state container for the layer triggered to control styling
     hideout = dict(current_hideout)
     hideout["selected_id"] = selected_id
     hideout["track_focus"] = (checkbox_value != [])
-    hideout["base_color"] = color_gpx_1 if base_layer == "Carto Light" else color_gpx_2
+    hideout["base_color"] = (
+        COLOR_GPX_CARTO_LIGHT if base_layer == "Carto Light" 
+        else COLOR_GPX_CARTO_VOYAGER
+    )
     hideout["tooltips"] = _tooltips_html
     hideout["tooltip_opacity"] = 0.0 if checkbox_value == [] else 0.9
 

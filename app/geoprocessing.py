@@ -14,7 +14,7 @@ PARALLEL_MIN_CORES = 2
 # Maximum number of worker processes for parallel GPX parsing
 DEFAULT_MAX_WORKERS = 8
 
-# -- application parameters --
+# --- application parameters ---
 progress_state = {}
 
 # --- helper function at module level (picklable) ---
@@ -171,9 +171,9 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     progress_state["current-task"] = "Buffering GPX geometries"
     progress_state["pct"] = 60
     all_gpx_gdf['geometry'] = all_gpx_gdf['geometry'].simplify(
-        tolerance=simplify_tolerance/2, preserve_topology=True
+        tolerance=SIMPLIFY_TOLERANCE_M/2, preserve_topology=True
     )
-    all_gpx_gdf["buffer_geom"] = all_gpx_gdf.geometry.buffer(buffer_distance)
+    all_gpx_gdf["buffer_geom"] = all_gpx_gdf.geometry.buffer(BUFFER_DISTANCE_M)
     gpx_buffers = all_gpx_gdf.set_geometry("buffer_geom")
 
     # --- spatial join: find all segments that intersect each GPX track buffer ---
@@ -213,7 +213,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     )
 
     # --- filter segments by minimum overlap and remove unnecessary columns ---
-    mask = joined["overlap_percentage"] >= intersect_threshold
+    mask = joined["overlap_percentage"] >= INTERSECT_THRESHOLD
     drop_cols = [
         "index", "index_right", "buffer_geom", "segment_length", 
         "intersection_geom", "intersection_length"

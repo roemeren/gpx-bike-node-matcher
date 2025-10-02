@@ -1,7 +1,5 @@
 from pathlib import Path
 from datetime import datetime
-from dash import html
-import dash_leaflet as dl
 
 DATA_VERSION_FILE = Path("data/processed/DATA_VERSION")
 VERSION_FILE = Path("VERSION")
