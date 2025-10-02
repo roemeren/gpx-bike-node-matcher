@@ -1,0 +1,33 @@
+name: Deploy Application
+
+on:
+  push:
+    # Trigger on version tags
+    tags:
+      - 'v*.*.*'  # This pattern matches tags like 'v1.0.3'
+    # Trigger on pushes to main if any data file has changed
+    branches:
+      - main
+    paths:
+      - 'data/processed/**'
+  workflow_dispatch:   # Allow manual trigger
+
+jobs:
+  deploy-dash:
+    runs-on: ubuntu-latest  # The job will run on the latest Ubuntu runner
+
+    environment: 
+      name: production  # Contains environment-specific config and secrets
+      url: https://gpx-bike-node-matcher.onrender.com  # Link to the deployed app 
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Render
+      # Note: specifying a branch here has no effect: Render always builds
+      # from the branch configured in the Render service settings.
+      run: |
+        curl -sSf -X POST \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+          "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys"

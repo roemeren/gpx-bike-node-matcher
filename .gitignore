@@ -1,0 +1,16 @@
+# Ignore all data except geojson/parquet/txt files in data/processed tracked by LFS
+data/*
+!data/processed/
+data/processed/*
+!data/processed/*.geojson
+!data/processed/*.parquet
+!data/processed/DATA_VERSION
+
+# Ignore static files from the app
+app/static/
+app/uploads/
+
+# Ignore other files and folders
+__pycache__/
+notebooks/
+.cache/
