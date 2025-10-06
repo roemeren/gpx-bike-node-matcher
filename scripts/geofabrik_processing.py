@@ -200,9 +200,7 @@ def load_gpkg_layers_by_suffix(gpkg_path):
     return gdf_multiline, gdf_point
 
 def drop_sparse_columns(df, keep_cols=None, threshold=0.9, logging=False):
-    """
-    Drop columns that are sparse (too many missing or empty string values).
-    """
+    """Drop columns that are sparse (too many missing or empty string values)."""
     if keep_cols is None:
         keep_cols = []
 
@@ -280,19 +278,48 @@ def process_osm_data(tqdm_params):
     print(f"[INFO] Reading GeoPackage: {INPUT_GPKG}")
     gdf_multiline, gdf_point = load_gpkg_layers_by_suffix(INPUT_GPKG)
 
-    # debug
-    print(gdf_multiline.shape)
-    print(gdf_point.shape)
-    print(gdf_multiline.columns)
-
     # Deduplicate lines and points near border regions
     n_multi, n_point = len(gdf_multiline), len(gdf_point)
-    gdf_multiline = gdf_multiline.dissolve(by="osm_id", aggfunc="first").reset_index()
-    gdf_point = gdf_point.drop_duplicates(subset="osm_id", keep="first").reset_index(drop=True)
+
+    def _priority(val: str) -> int:
+        """
+        Assign numeric priority based on main country and regional context.
+
+        Used to enforce deterministic ordering for deduplication and dissolve
+        operations — ensuring the same 'first' record is always chosen.
+        """
+        if isinstance(val, str):
+            if val.startswith(MAIN_COUNTRY):
+                return 1
+            elif any(val.startswith(c) for c in MAIN_REGION_COUNTRIES):
+                return 2
+        return 3
+
+    gdf_multiline = (
+        gdf_multiline
+        .assign(__priority=lambda df: df["source_layer"].apply(_priority))
+        .sort_values(["osm_id", "__priority"])
+        .dissolve(by="osm_id", aggfunc="first")
+        .reset_index(drop=False)
+        .drop(columns="__priority", errors="ignore")
+    )
+
+    # debug
+    print(gdf_multiline.columns)
+
+    gdf_point = (
+        gdf_point
+        .assign(__priority=lambda df: df["source_layer"].apply(_priority))
+        .sort_values(["osm_id", "__priority"])
+        .drop_duplicates(subset="osm_id", keep="first")
+        .reset_index(drop=True)
+        .drop(columns="__priority", errors="ignore")
+    )
+
     print(f"[INFO] Loaded {len(gdf_multiline)} multilines (-{n_multi - len(gdf_multiline)} dupes) "
         f"and {len(gdf_point)} points (-{n_point - len(gdf_point)} dupes).")
     
-    # Keep only features originating from main countries ---
+    # Only keep features originating from main countries ---
     mask_main_region = gdf_multiline["source_layer"].str.startswith(tuple(MAIN_REGION_COUNTRIES))
     n_before = len(gdf_multiline)
     gdf_multiline = gdf_multiline[mask_main_region].reset_index(drop=True)
@@ -332,11 +359,14 @@ def process_osm_data(tqdm_params):
     print(
         f"[INFO] Marked {gdf_point['is_main_country'].sum()} nodes as belonging to {MAIN_COUNTRY}."
     )
-    print(f"[INFO] No. columns reduced from {before_filter_cols} → {gdf_point.shape[1]} columns.")
+    print(
+        f"[INFO] Columns reduced from {before_filter_cols} to {gdf_point.shape[1]} "
+        f"(kept columns with at least {(1 - SPARSITY_THRESHOLD)*100:.0f}% valid data)."
+    )
     print(f"[INFO] Filtered nodes from {before_filter} → {len(gdf_point)} valid nodes.")
 
     # Convert to projected coordinate system
-    print("[INFO] Projecting...")
+    print("[INFO] Reprojecting to EPSG:{EPSG_PROJECTED}...")
     gdf_multiline_projected = gdf_multiline.to_crs(epsg=EPSG_PROJECTED)
     gdf_point_projected = gdf_point.to_crs(epsg=EPSG_PROJECTED)
 
@@ -372,7 +402,7 @@ def process_osm_data(tqdm_params):
     gdf_point_projected_main = gdf_point_projected[gdf_point_projected['is_main_country']]
 
     # Convert the enriched result back to WGS84
-    print("[INFO] Converting back to WGS84 (EPSG:4326)...")
+    print("[INFO] Reprojecting back to EPSG:4326 (WGS84)...")
     gdf_multiline = gdf_multiline_projected.to_crs(epsg=4326)
     gdf_multiline_main = gdf_multiline_projected_main.to_crs(epsg=4326)
     
