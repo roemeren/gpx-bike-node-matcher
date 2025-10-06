@@ -119,10 +119,10 @@ jobs:
             bash scripts/geofabrik_preprocessing.sh ${{ needs.check-latest.outputs.latest_date }} "$FILE"
           done
         
-      # # Run processing script
-      # - name: Run Python processing
-      #   run: |
-      #     python -m scripts.geofabrik_processing
+      # Run processing script
+      - name: Run Python processing
+        run: |
+          python -m scripts.geofabrik_processing
 
       # # Update data version
       # - name: Update data version file
