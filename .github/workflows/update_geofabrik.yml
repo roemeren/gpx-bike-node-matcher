@@ -87,28 +87,52 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y osmium-tool gdal-bin
 
-      # Restore & cache Geofabrik file
-      - name: Restore & cache Geofabrik file
+      # Restore & cache Geofabrik files
+      - name: Restore & cache Geofabrik files
         id: geofabrik-cache
-        uses: actions/cache@v4
-        with:
-          path: data/raw/belgium-latest.osm.pbf
-          key: belgium-${{ needs.check-latest.outputs.latest_date }}
-
-      # Download Geofabrik file only if cache was missed
-      - name: Download Geofabrik file if needed
-        if: steps.geofabrik-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p data/raw
-          echo "[INFO] Downloading Belgium OSM PBF"
-          curl -L "https://download.geofabrik.de/europe/belgium-${{ needs.check-latest.outputs.latest_date }}.osm.pbf" \
-              -o "data/raw/belgium-latest.osm.pbf"
-          echo "[INFO] Download complete"
+          while IFS= read -r REGION; do
+            [ -z "$REGION" ] && continue
+            SAFE_REGION="${REGION//\//-}"
+            CACHE_KEY="${SAFE_REGION}-${{ needs.check-latest.outputs.latest_date }}"
+            FILE_PATH="data/raw/${SAFE_REGION}-latest.osm.pbf"
 
-      # Run preprocessing script
-      - name: Run Bash preprocessing
+            echo "[INFO] Checking cache for $REGION..."
+            echo "::group::Cache restore for $REGION"
+            echo "path=$FILE_PATH" >> $GITHUB_OUTPUT
+            echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
+            echo "::endgroup::"
+          done < scripts/geofabrik_file_list.txt
+        shell: bash
+
+      # Download missing Geofabrik files
+      - name: Download Geofabrik files if needed
         run: |
-          bash scripts/geofabrik_preprocessing.sh ${{ needs.check-latest.outputs.latest_date }} data/raw/belgium-latest.osm.pbf
+          mkdir -p data/raw
+          while IFS= read -r REGION; do
+            [ -z "$REGION" ] && continue
+            SAFE_REGION="${REGION//\//-}"
+            FILE_PATH="data/raw/${SAFE_REGION}-latest.osm.pbf"
+            URL="https://download.geofabrik.de/europe/${REGION}-${{ needs.check-latest.outputs.latest_date }}.osm.pbf"
+
+            if [ ! -f "$FILE_PATH" ]; then
+              echo "[INFO] Downloading $REGION OSM PBF..."
+              curl -L "$URL" -o "$FILE_PATH"
+              echo "[INFO] Download complete: $FILE_PATH"
+            else
+              echo "[INFO] Cache hit: skipping $REGION"
+            fi
+          done < scripts/geofabrik_file_list.txt
+        shell: bash
+          
+      # Run preprocessing script
+      - name: Run Bash preprocessing for all regions
+        run: |
+          for FILE in data/raw/*.osm.pbf; do
+            echo "[INFO] Running preprocessing for $FILE"
+            bash scripts/geofabrik_preprocessing.sh ${{ needs.check-latest.outputs.latest_date }} "$FILE"
+          done
         
       # Run processing script
       - name: Run Python processing
