@@ -134,16 +134,16 @@ jobs:
             bash scripts/geofabrik_preprocessing.sh ${{ needs.check-latest.outputs.latest_date }} "$FILE"
           done
         
-      # Run processing script
-      - name: Run Python processing
-        run: |
-          python -m scripts.geofabrik_processing
+      # # Run processing script
+      # - name: Run Python processing
+      #   run: |
+      #     python -m scripts.geofabrik_processing
 
-      # Update data version
-      - name: Update data version file
-        run: |
-          mkdir -p data/processed
-          echo "${{ needs.check-latest.outputs.latest_date }}" > data/processed/DATA_VERSION
+      # # Update data version
+      # - name: Update data version file
+      #   run: |
+      #     mkdir -p data/processed
+      #     echo "${{ needs.check-latest.outputs.latest_date }}" > data/processed/DATA_VERSION
 
       # # Commit changes and create Pull Request (idempotent)
       # - name: Create Pull Request
