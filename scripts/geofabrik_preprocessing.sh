@@ -10,16 +10,6 @@ BASENAME=$(basename "$INPUT_FILE")
 REGION=${BASENAME%-latest.osm.pbf}
 
 echo "=== START OSM PREPROCESSING $REGION ==="
-
-# --- Ensure that results directory exists ---
-RESULTS_DIR="data/intermediate"
-mkdir -p "$RESULTS_DIR"
-
-if [ -z "$DATE" ] || [ -z "$INPUT_FILE" ]; then
-    echo "[ERROR] Usage: $0 <yymmdd> <input_file>"
-    exit 1
-fi
-
 echo "[INFO] Input file: $INPUT_FILE"
 echo "[INFO] Input file date: $DATE"
 

@@ -114,6 +114,7 @@ jobs:
       # Run preprocessing script
       - name: Run Bash preprocessing for all regions
         run: |
+          mkdir -p data/intermediate
           for FILE in data/raw/*.osm.pbf; do
             echo "[INFO] Running preprocessing for $FILE"
             bash scripts/geofabrik_preprocessing.sh ${{ needs.check-latest.outputs.latest_date }} "$FILE"
@@ -122,12 +123,12 @@ jobs:
       # Run processing script
       - name: Run Python processing
         run: |
+          mkdir -p data/processed
           python -m scripts.geofabrik_processing
 
       # Update data version
       - name: Update data version file
         run: |
-          mkdir -p data/processed
           echo "${{ needs.check-latest.outputs.latest_date }}" > data/processed/DATA_VERSION
 
       # Commit changes and create Pull Request (idempotent)
