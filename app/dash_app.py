@@ -20,9 +20,14 @@ _tooltips_html = {}
 _processing_thread = None
 
 # --- load data ---
-bike_network_seg = gpd.read_parquet(MULTILINE_PROJECTED_PARQUET_PATH)
-bike_network_node = gpd.read_parquet(POINT_PROJECTED_PARQUET_PATH)
-with open(MULTILINE_GEOJSON_PATH , "r") as f:
+folder = OUTPUT_FOLDER_LITE if os.getenv("RENDER") == "true" else OUTPUT_FOLDER_FULL
+seg_path_parquet =  Path(folder) / MULTILINE_PROJECTED_PARQUET_NAME
+node_path_parquet = Path(folder) / POINT_PROJECTED_PARQUET_NAME
+seg_path_geojson = Path(folder) / MULTILINE_GEOJSON_NAME
+
+bike_network_seg = gpd.read_parquet(seg_path_parquet)
+bike_network_node = gpd.read_parquet(node_path_parquet)
+with open(seg_path_geojson , "r") as f:
    geojson_network = json.load(f)
 
 # --- initialize app ---
