@@ -20,7 +20,17 @@ _tooltips_html = {}
 _processing_thread = None
 
 # --- load data ---
-folder = OUTPUT_FOLDER_LITE if os.getenv("RENDER") == "true" else OUTPUT_FOLDER_FULL
+if os.getenv("RENDER") == "true":
+    # use full version of the app using the full network
+    folder = OUTPUT_FOLDER_LITE
+    app_header = "Belgian Bike Node Network Matcher"
+    app_descr = "Upload a zip file with your GPX rides to see how they align with Belgium’s bike node network."
+else:
+    # use 'lite' version of the app containing only the Belgian network
+    folder = OUTPUT_FOLDER_FULL
+    app_header = "Bike Node Network Matcher"
+    app_descr = "Upload a ZIP file with your GPX rides to see how they align with the Belgian and Dutch bike node networks.",
+
 seg_path_parquet =  Path(folder) / MULTILINE_PROJECTED_PARQUET_NAME
 node_path_parquet = Path(folder) / POINT_PROJECTED_PARQUET_NAME
 seg_path_geojson = Path(folder) / MULTILINE_GEOJSON_NAME
@@ -44,11 +54,11 @@ app.layout = dbc.Container(
     [
         html.Div([
             html.H1(
-                "Belgian Bike Node Network Matcher",
+                app_header,
                 className="text-center my-2 display-4"
             ),
             html.P(
-                "Upload a zip file with your GPX rides and see how they align with Belgium’s bike node network.",
+                app_descr,
                 className="text-center text-muted mb-4"
             )
         ]),
