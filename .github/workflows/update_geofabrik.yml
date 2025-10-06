@@ -145,14 +145,14 @@ jobs:
           mkdir -p data/processed
           echo "${{ needs.check-latest.outputs.latest_date }}" > data/processed/DATA_VERSION
 
-      # Commit changes and create Pull Request (idempotent)
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.PAT_FOR_PR }}
-          branch: update-data-${{ needs.check-latest.outputs.latest_date }}
-          base: main
-          title: "Update data to ${{ needs.check-latest.outputs.latest_date }}"
-          body: "Automated data update from Geofabrik."
-          commit-message: "Update data to version ${{ needs.check-latest.outputs.latest_date }}"
+      # # Commit changes and create Pull Request (idempotent)
+      # - name: Create Pull Request
+      #   uses: peter-evans/create-pull-request@v6
+      #   with:
+      #     token: ${{ secrets.PAT_FOR_PR }}
+      #     branch: update-data-${{ needs.check-latest.outputs.latest_date }}
+      #     base: main
+      #     title: "Update data to ${{ needs.check-latest.outputs.latest_date }}"
+      #     body: "Automated data update from Geofabrik."
+      #     commit-message: "Update data to version ${{ needs.check-latest.outputs.latest_date }}"
           
