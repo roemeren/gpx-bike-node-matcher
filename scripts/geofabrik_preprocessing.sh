@@ -20,8 +20,8 @@ if [ -z "$DATE" ] || [ -z "$INPUT_FILE" ]; then
     exit 1
 fi
 
-echo "[INFO] Using cached input file: $INPUT_FILE"
-echo "[INFO] Processing date: $DATE"
+echo "[INFO] Input file: $INPUT_FILE"
+echo "[INFO] Input file date: $DATE"
 
 # --- Filter OSM data ---
 RCN_RELATIONS="$RESULTS_DIR/rcn_relations.osm.pbf"

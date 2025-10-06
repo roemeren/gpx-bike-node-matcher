@@ -163,7 +163,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
 
     # --- reproject ---
     progress_state["show-dots"] = True
-    progress_state["current-task"] = "Reprojecting GPX geometries to Lambert 2008"
+    progress_state["current-task"] = f"Reprojecting GPX geometries to EPSG:{EPSG_PROJECTED}"
     progress_state["pct"] = 55
     all_gpx_gdf = all_gpx_gdf.to_crs(epsg=EPSG_PROJECTED)
 
