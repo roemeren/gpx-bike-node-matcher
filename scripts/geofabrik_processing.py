@@ -304,9 +304,6 @@ def process_osm_data(tqdm_params):
         .drop(columns="__priority", errors="ignore")
     )
 
-    # debug
-    print(gdf_multiline.columns)
-
     gdf_point = (
         gdf_point
         .assign(__priority=lambda df: df["source_layer"].apply(_priority))
@@ -366,7 +363,7 @@ def process_osm_data(tqdm_params):
     print(f"[INFO] Filtered nodes from {before_filter} → {len(gdf_point)} valid nodes.")
 
     # Convert to projected coordinate system
-    print("[INFO] Reprojecting to EPSG:{EPSG_PROJECTED}...")
+    print(f"[INFO] Reprojecting to EPSG:{EPSG_PROJECTED}...")
     gdf_multiline_projected = gdf_multiline.to_crs(epsg=EPSG_PROJECTED)
     gdf_point_projected = gdf_point.to_crs(epsg=EPSG_PROJECTED)
 
