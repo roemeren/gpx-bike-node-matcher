@@ -42,17 +42,15 @@ LAYER_NAME_POINT="${REGION}_point"
 
 if [ -f "$OUTPUT_GPKG" ]; then
     echo "[INFO] Appending to existing GeoPackage: $OUTPUT_GPKG"
-    ogr2ogr -f "GPKG" -update "$OUTPUT_GPKG" "$RCN_RELATIONS" multilinestrings -nln "$LAYER_NAME" -overwrite
+    ogr2ogr -f "GPKG" -update "$OUTPUT_GPKG" "$RCN_RELATIONS" multilinestrings -nln "$LAYER_NAME_MULTILINE" -overwrite
 else
     echo "[INFO] Creating new GeoPackage: $OUTPUT_GPKG"
-    ogr2ogr -f "GPKG" "$OUTPUT_GPKG" "$RCN_RELATIONS" multilinestrings -nln "$LAYER_NAME"
+    ogr2ogr -f "GPKG" "$OUTPUT_GPKG" "$RCN_RELATIONS" multilinestrings -nln "$LAYER_NAME_MULTILINE"
 fi
-echo "[INFO] Added multilinestrings layer '$LAYER_NAME' to GeoPackage"
+echo "[INFO] Added multilinestrings layer '$LAYER_NAME_MULTILINE' to GeoPackage"
 
-ogr2ogr -f "GPKG" -update "$OUTPUT_GPKG" "$RCN_POINTS" points -nln "$LAYER_NAME_POINTS" -overwrite
+ogr2ogr -f "GPKG" -update "$OUTPUT_GPKG" "$RCN_POINTS" points -nln "$LAYER_NAME_POINT" -overwrite
 echo "[INFO] Added points layer to GeoPackage"
-
-echo "[INFO] GeoPackage created successfully: $OUTPUT_GPKG"
 
 echo "[INFO] Processing complete."
 echo "=== END OSM PREPROCESSING $REGION ==="
