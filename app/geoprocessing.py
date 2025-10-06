@@ -126,9 +126,9 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     gpx_rows = []
     # added as environment variable in Render; used to disable parallel processing
     # on the free tier to prevent crashes or memory issues
-    IS_RENDER = os.getenv("RENDER") == "true"
+    is_render = os.getenv("RENDER") == "true"
     use_parallel = (
-        not IS_RENDER
+        not is_render
         and os.cpu_count() >= PARALLEL_MIN_CORES
         and total_files >= PARALLEL_MIN_FILES
     )
@@ -165,7 +165,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     progress_state["show-dots"] = True
     progress_state["current-task"] = "Reprojecting GPX geometries to Lambert 2008"
     progress_state["pct"] = 55
-    all_gpx_gdf = all_gpx_gdf.to_crs("EPSG:3812")
+    all_gpx_gdf = all_gpx_gdf.to_crs(epsg=EPSG_PROJECTED)
 
     # --- simplify & buffer GPX geometries---
     progress_state["current-task"] = "Buffering GPX geometries"

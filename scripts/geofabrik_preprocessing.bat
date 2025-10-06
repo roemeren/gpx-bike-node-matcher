@@ -29,22 +29,18 @@ IF "%1"=="" (
     exit /b 1
 )
 SET DATE=%1
-SET FILENAME=belgium-%DATE%.osm.pbf
-
-REM --- Set temp directory ---
-SET TEMP_DIR=data\intermediate
-IF NOT EXIST "%TEMP_DIR%" (
-    echo [INFO] Creating temp folder: %TEMP_DIR%
-    mkdir "%TEMP_DIR%"
-)
+SET REGION_INPUT=%2
+SET REGION=%REGION_INPUT:/=-%
+SET FILENAME=%REGION%-%DATE%.osm.pbf
+SET DOWNLOADNAME=%REGION_INPUT%-%DATE%.osm.pbf
 
 REM --- Download OSM PBF if it does not exist ---
 IF EXIST "data\raw\%FILENAME%" (
     echo [INFO] data\raw\%FILENAME% already exists, skipping download
 ) ELSE (
     echo [INFO] Downloading %FILENAME%
-    curl -o "data\raw\%FILENAME%" "https://download.geofabrik.de/europe/%FILENAME%"
-    echo [INFO] Download complete: %FILENAME%
+    curl -o "data\raw\%FILENAME%" "https://download.geofabrik.de/europe/%DOWNLOADNAME%"
+    echo [INFO] Download complete: %REGION_INPUT%
 )
 
 REM --- Filter OSM data for rcn network relations ---
@@ -56,11 +52,15 @@ echo [INFO] Filtering OSM data for rcn_ref points
 osmium tags-filter data\intermediate\rcn_relations.osm.pbf n/rcn_ref -o data\intermediate\rcn_ref_points.osm.pbf --overwrite
 echo [INFO] Extracted rcn_ref points
 
-REM --- Create output GeoPackage ---
-echo [INFO] Creating output GeoPackage: rcn_output.gpkg
-ogr2ogr -f "GPKG" data\intermediate\rcn_output.gpkg data\intermediate\rcn_relations.osm.pbf multilinestrings
-ogr2ogr -f "GPKG" -update data\intermediate\rcn_output.gpkg data\intermediate\rcn_ref_points.osm.pbf points
-echo [INFO] GeoPackage created: data\intermediate\rcn_output.gpkg
+REM --- Update output GeoPackage ---
+echo [INFO] Updating output GeoPackage: rcn_output.gpkg
+if exist data/intermediate/rcn_output.gpkg (
+    ogr2ogr -f "GPKG" -update data\intermediate\rcn_output.gpkg data\intermediate\rcn_relations.osm.pbf multilinestrings -nln %REGION%_multiline -overwrite
+) else (
+    ogr2ogr -f "GPKG" data\intermediate\rcn_output.gpkg data\intermediate\rcn_relations.osm.pbf multilinestrings -nln %REGION%_multiline
+)
+ogr2ogr -f "GPKG" -update data\intermediate\rcn_output.gpkg data\intermediate\rcn_ref_points.osm.pbf points -nln %REGION%_point -overwrite
+echo [INFO] GeoPackage updated: data\intermediate\rcn_output.gpkg
 
 echo [INFO] Processing complete.
 echo === END OSM PROCESSING ===
