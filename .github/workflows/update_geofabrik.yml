@@ -87,27 +87,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y osmium-tool gdal-bin
 
-      # Restore & cache Geofabrik files
+      # Restore & cache all Geofabrik files together
       - name: Restore & cache Geofabrik files
         id: geofabrik-cache
-        run: |
-          mkdir -p data/raw
-          while IFS= read -r REGION; do
-            [ -z "$REGION" ] && continue
-            SAFE_REGION="${REGION//\//-}"
-            CACHE_KEY="${SAFE_REGION}-${{ needs.check-latest.outputs.latest_date }}"
-            FILE_PATH="data/raw/${SAFE_REGION}-latest.osm.pbf"
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: geofabrik-${{ needs.check-latest.outputs.latest_date }}
 
-            echo "[INFO] Checking cache for $REGION..."
-            echo "::group::Cache restore for $REGION"
-            echo "path=$FILE_PATH" >> $GITHUB_OUTPUT
-            echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
-            echo "::endgroup::"
-          done < scripts/geofabrik_file_list.txt
-        shell: bash
-
-      # Download missing Geofabrik files
-      - name: Download Geofabrik files if needed
+      # Download all Geofabrik files if cache was missed
+      - name: Download Geofabrik files
+        if: steps.geofabrik-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p data/raw
           while IFS= read -r REGION; do
@@ -115,14 +105,9 @@ jobs:
             SAFE_REGION="${REGION//\//-}"
             FILE_PATH="data/raw/${SAFE_REGION}-latest.osm.pbf"
             URL="https://download.geofabrik.de/europe/${REGION}-${{ needs.check-latest.outputs.latest_date }}.osm.pbf"
-
-            if [ ! -f "$FILE_PATH" ]; then
-              echo "[INFO] Downloading $REGION OSM PBF..."
-              curl -L "$URL" -o "$FILE_PATH"
-              echo "[INFO] Download complete: $FILE_PATH"
-            else
-              echo "[INFO] Cache hit: skipping $REGION"
-            fi
+            echo "[INFO] Downloading $REGION OSM PBF..."
+            curl -L "$URL" -o "$FILE_PATH"
+            echo "[INFO] Download complete: $FILE_PATH"
           done < scripts/geofabrik_file_list.txt
         shell: bash
           
