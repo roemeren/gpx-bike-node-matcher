@@ -28,11 +28,11 @@ RCN_RELATIONS="$RESULTS_DIR/rcn_relations.osm.pbf"
 RCN_POINTS="$RESULTS_DIR/rcn_ref_points.osm.pbf"
 
 echo "[INFO] Filtering OSM relations (network=rcn)..."
-osmium tags-filter "$INPUT_FILE" r/network=rcn -o "$RCN_RELATIONS"
+osmium tags-filter "$INPUT_FILE" r/network=rcn -o "$RCN_RELATIONS" --overwrite
 echo "[INFO] Relations saved to: $RCN_RELATIONS"
 
 echo "[INFO] Filtering OSM points (rcn_ref)..."
-osmium tags-filter "$RCN_RELATIONS" n/rcn_ref -o "$RCN_POINTS"
+osmium tags-filter "$RCN_RELATIONS" n/rcn_ref -o "$RCN_POINTS" --overwrite
 echo "[INFO] Points saved to: $RCN_POINTS"
 
 # --- Create GeoPackage ---
