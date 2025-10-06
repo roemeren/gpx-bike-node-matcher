@@ -8,6 +8,7 @@ INPUT_FILE=$2  # full path to cached .osm.pbf
 # --- Derive region name from input file ---
 BASENAME=$(basename "$INPUT_FILE")
 REGION=${BASENAME%-latest.osm.pbf}
+RESULTS_DIR="data/intermediate"
 
 echo "=== START OSM PREPROCESSING $REGION ==="
 echo "[INFO] Input file: $INPUT_FILE"

@@ -1,10 +1,10 @@
-# Belgian Bike Node Network Matcher 🚲
+# Bike Node Network Matcher 🚲
 
 ![GitHub tag (latest)](https://img.shields.io/github/v/tag/roemeren/gpx-bike-node-matcher)
 ![Last Commit](https://img.shields.io/github/last-commit/roemeren/gpx-bike-node-matcher)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-A Dash app to explore how your GPX rides align with Belgium’s bike node network.  
+A Dash app to explore how your GPX rides align with the Belgian and Dutch bike node networks.  
 Upload a ZIP of your rides—these can be exports from Garmin Connect, Strava, 
 files from an old Garmin device collecting dust, etc.—see matched nodes and segments on a map, and download the results.
 
@@ -12,8 +12,12 @@ files from an old Garmin device collecting dust, etc.—see matched nodes and se
 
 ## Demo
 
-The app is deployed on [Render](https://gpx-bike-node-matcher.onrender.com) (heads-up: free-tier hosting makes ZIP processing a bit slow 🐢).  
-For a smoother ride, it’s recommended to run it locally if the ZIP file contains more than 10-20 tracks.
+The app is deployed on [Render](https://gpx-bike-node-matcher.onrender.com) (heads-up: free-tier hosting makes ZIP processing a bit slow 🐢).
+
+⚠️ **Note:** The hosted Render version currently includes **only the Belgian bike node network** due to memory limitations.  
+If you need coverage for the Netherlands or cross-border regions, please run the app locally instead.
+
+For a smoother ride, it’s recommended to run it locally if the ZIP file contains hundreds of tracks.
 
 ## Features
 
