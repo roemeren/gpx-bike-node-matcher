@@ -280,6 +280,11 @@ def process_osm_data(tqdm_params):
     print(f"[INFO] Reading GeoPackage: {INPUT_GPKG}")
     gdf_multiline, gdf_point = load_gpkg_layers_by_suffix(INPUT_GPKG)
 
+    # debug
+    print(gdf_multiline.shape)
+    print(gdf_point.shape)
+    print(gdf_multiline.columns)
+
     # Deduplicate lines and points near border regions
     n_multi, n_point = len(gdf_multiline), len(gdf_point)
     gdf_multiline = gdf_multiline.dissolve(by="osm_id", aggfunc="first").reset_index()
