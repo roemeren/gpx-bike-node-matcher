@@ -1,12 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "=== START OSM PROCESSING ==="
-
-RESULTS_DIR="data/intermediate"
-mkdir -p "$RESULTS_DIR"
-echo "[INFO] Temp directory ensured: $RESULTS_DIR"
-
 # --- Get parameters ---
 DATE=$1
 INPUT_FILE=$2  # full path to cached .osm.pbf
@@ -14,6 +8,12 @@ INPUT_FILE=$2  # full path to cached .osm.pbf
 # --- Derive region name from input file ---
 BASENAME=$(basename "$INPUT_FILE")
 REGION=${BASENAME%-latest.osm.pbf}
+
+echo "=== START OSM PREPROCESSING $REGION ==="
+
+# --- Ensure that results directory exists ---
+RESULTS_DIR="data/intermediate"
+mkdir -p "$RESULTS_DIR"
 
 if [ -z "$DATE" ] || [ -z "$INPUT_FILE" ]; then
     echo "[ERROR] Usage: $0 <yymmdd> <input_file>"
@@ -55,4 +55,4 @@ echo "[INFO] Added points layer to GeoPackage"
 echo "[INFO] GeoPackage created successfully: $OUTPUT_GPKG"
 
 echo "[INFO] Processing complete."
-echo "=== END OSM PROCESSING ==="
+echo "=== END OSM PREPROCESSING $REGION ==="
