@@ -452,6 +452,7 @@ def start_processing(_, filename, upload_ready):
         progress_state["running"] = True
         all_segments, all_nodes, all_gpx = process_gpx_zip(zip_file_path, bike_network_seg, bike_network_node)
 
+        # Reproject all GeoDataFrames to WGS84 (EPSG:4326) for export and mapping
         all_segments = all_segments.to_crs(epsg=4326) if not all_segments.empty else gpd.GeoDataFrame()
         all_nodes = all_nodes.to_crs(epsg=4326) if not all_nodes.empty else gpd.GeoDataFrame()
         all_gpx = all_gpx.to_crs(epsg=4326) if not all_gpx.empty else gpd.GeoDataFrame()
