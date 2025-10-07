@@ -262,6 +262,10 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     all_gpx_gdf = all_gpx_gdf.drop(columns="buffer_geom")
     all_gpx_gdf["track_length"] = all_gpx_gdf.geometry.length / 1000.0
 
+    # --- add match flag per GPX track ---
+    matched_uids = set(all_segments["track_uid"].unique())
+    all_gpx_gdf["matched_flag"] = all_gpx_gdf["track_uid"].isin(matched_uids)
+
     return all_segments, all_nodes, all_gpx_gdf
 
 def create_result_zip(segments_path, nodes_path, gpx_path):

@@ -33,6 +33,9 @@ def make_gpx_tooltip(feature):
         # fallback if it's already clean
         date_str = row['track_date'][:10]
 
+    # Convert boolean to 'Yes'/'No'
+    matched_text = "Yes" if row.get("matched_flag") else "No"
+
     html_string = f"""
     <div style="line-height:1.4">
         <span style="color:#999; font-size:14px;">Track </span>
@@ -43,7 +46,9 @@ def make_gpx_tooltip(feature):
         <span style="color:#999; font-size:12px;">Distance: </span>
         <span style="color:#000; font-size:12px; font-weight:bold;">{row['track_length']:.2f} km</span><br>
         <span style="color:#999; font-size:12px;">File: </span>
-        <span style="color:#000; font-size:12px; font-weight:bold;">{row['gpx_name']}</span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{row['gpx_name']}</span><br>
+        <span style="color:#999; font-size:12px;">Matched: </span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{matched_text}</span><br>
         <br><br>
         <i style="color:#999; font-size:14px;">Click to zoom in on this track</i>
     </div>

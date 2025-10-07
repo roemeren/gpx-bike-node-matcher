@@ -223,7 +223,7 @@ app.layout = dbc.Container(
                                 f"out of {len(bike_network_node)}",
                                 style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
                             )
-                        ])), width=4),
+                        ])), width=3),
                         dbc.Col(dbc.Card(dbc.CardBody([
                             html.H5("No. Matched Segments"),
                             html.H2(id="kpi-totsegments", children="–"),
@@ -231,15 +231,23 @@ app.layout = dbc.Container(
                                 f"out of {len(bike_network_seg)}",
                                 style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
                             )
-                        ])), width=4),
+                        ])), width=3),
                         dbc.Col(dbc.Card(dbc.CardBody([
-                            html.H5("Total Matched Segment Length (km)"),
+                            html.H5("Matched Segment Length"),
                             html.H2(id="kpi-totlength", children="–"),
                             html.Div(
                                 f"out of {bike_network_seg['length_km'].sum():.0f} km",
                                 style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
                             )
-                        ])), width=4),
+                        ])), width=3),
+                        dbc.Col(dbc.Card(dbc.CardBody([
+                            html.H5("No. Matched Tracks"),
+                            html.H2(id="kpi-tottracks", children="–"),
+                            html.Div(
+                                id="kpi-tottracks-outof",
+                                style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
+                            )
+                        ])), width=3),
                     ], className="mb-3"),
                     # Map & panels
                     dbc.Row([
@@ -575,6 +583,8 @@ def update_progress(*_):
     Output("kpi-totsegments", "children"),
     Output("kpi-totnodes", "children"),
     Output("kpi-totlength", "children"),
+    Output("kpi-tottracks-outof", "children"),
+    Output("kpi-tottracks", "children"),
     Output("geojson-store-filtered", "data"),
     Input("geojson-store-full", "data"),
     Input("year-slider", "value"),
@@ -583,7 +593,7 @@ def filter_data(store, slider):
     """Filter bike segments and nodes by date and compute KPIs."""
     
     if not store or not store.get("segments", {}).get("features"):
-        return None, None, None, {}
+        return None, None, None, None, None, {}
 
     gdf_segments = gpd.GeoDataFrame.from_features(store["segments"]["features"])
     gdf_nodes = gpd.GeoDataFrame.from_features(store["nodes"]["features"])
@@ -697,11 +707,15 @@ def filter_data(store, slider):
     total_segments = len(agg_seg)
     total_nodes = len(agg_nodes)
     total_length = round(agg_seg["length_km"].sum(), 2)
+    total_tracks = len(gdf_gpx_filtered)
+    total_matched = gdf_gpx_filtered["matched_flag"].sum()
 
     return (
         total_segments,
         total_nodes,
-        total_length,
+        f"{total_length} km",
+        f"out of {total_tracks}",
+        total_matched,
         {
             "segments": agg_seg.__geo_interface__,
             "nodes": agg_nodes.__geo_interface__,
@@ -729,7 +743,7 @@ def update_line_layers(filtered_data):
         for feature in res_gpx["features"]
     }
 
-    return  filtered_data["segments"], res_gpx
+    return filtered_data["segments"], res_gpx
 
 @app.callback(
     Output("layer-nodes", "data"),
