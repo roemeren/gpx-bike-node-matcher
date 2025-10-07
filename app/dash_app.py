@@ -67,6 +67,11 @@ app.layout = dbc.Container(
             # Left panel
             dbc.Col(
                 [
+                    # =======================
+                    # PROCESSING SECTION
+                    # =======================
+                    html.H5("File Processing", className="mb-3", style={"fontWeight": "600"}),
+
                     dcc.Upload(
                         id="upload-zip",
                         children=html.Div(["Drag & Drop or ", html.A("Browse for ZIP")]),
@@ -79,9 +84,18 @@ app.layout = dbc.Container(
                             "margin-bottom": "10px"
                         },
                     ),
-                    html.Div(id="browse-info"),
-                    dbc.Button("Process ZIP", id="btn-process", color="primary", className="mb-2", disabled=False),
-                    dbc.Progress(id="progress", value=0, striped=True, animated=True, className="mb-2"),
+                    html.Div(id="browse-info", className="mb-2"),
+
+                    dbc.Button(
+                        "Process ZIP", 
+                        id="btn-process", 
+                        color="primary", 
+                        disabled=False, 
+                        className="mb-3"
+                    ),
+
+                    dbc.Progress(id="progress", value=0, striped=True, animated=True, className="mb-3"),
+
                     html.Div(
                         id="processing-status",
                         style={
@@ -90,8 +104,10 @@ app.layout = dbc.Container(
                             "fontFamily": "monospace",
                             "color": COLOR_PROCESSING,
                             "fontSize": "0.95rem"
-                        }
+                        },
+                        className="mb-2",
                     ),
+
                     html.Div(
                         dbc.Button(
                             "Download Results",
@@ -101,15 +117,86 @@ app.layout = dbc.Container(
                             external_link=True,
                             style={"display": "none"} # initially hidden
                         ),
-                        id="download-container"
+                        id="download-container",
+                        className="mb-3",
                     ),
-                    # --- Show data and app version ---
+
+                    html.Hr(style={"margin": "20px 0"}),
+
+                    # =======================
+                    # DASHBOARD CONTROLS
+                    # =======================
+                    html.H5("Dashboard Controls", className="mb-3", style={"fontWeight": "600"}),
+
+                    dbc.Button(
+                        "Reset Map", 
+                        id="reset-map-btn", 
+                        color="secondary", 
+                        style={"marginLeft": "20px"}, 
+                        className="mb-3"
+                    ),
+
+                    html.Div(
+                        dcc.Checklist(
+                            id="checkbox-show-hover",
+                            options=[{"label": "Track Focus", "value": "hover"}],
+                            value=[],  # default is unchecked, i.e., hover off
+                            inputStyle={"margin-right": "5px"},
+                            labelStyle={"display": "inline-block", "margin-right": "10px"},
+                        ),
+                        style={"marginLeft": "20px"},
+                        className="mb-3",
+                    ),
+
+                    html.Div(
+                        [
+                            dbc.Label("Select Years"),
+                            dcc.RangeSlider(
+                                min=SLIDER_MIN_YEAR,
+                                max=SLIDER_MAX_YEAR,
+                                step=1,
+                                id="year-slider",
+                                marks=None,
+                                tooltip={"placement": "bottom", "always_visible": True},
+                                value=[SLIDER_MIN_YEAR, SLIDER_MAX_YEAR],
+                            ),
+                        ],
+                        className="mb-4",
+                        style={"width": "80%", "marginLeft": "10px"},
+                    ),
+
+                    html.Div(
+                        [
+                            dbc.Label("Node Cluster Radius", html_for="cluster-radius-slider"),
+                            dcc.Slider(
+                                id="cluster-radius-slider",
+                                min=20,
+                                max=320,
+                                step=10,
+                                value=100,
+                                marks={i: str(i) for i in range(20, 321, 50)},
+                                tooltip={"placement": "bottom", "always_visible": True}
+                            )
+                        ], 
+                        className="mb-4",
+                        style={"width": "80%", "marginLeft": "10px"},
+                    ),
+
+                    html.Hr(style={"margin": "20px 0"}),
+
+                    # =======================
+                    # META INFO
+                    # =======================
                     html.Div([
                         f"Data version: {get_data_version()} (source: ",
                         html.A("Geofabrik", href="https://download.geofabrik.de/europe/belgium.html#", target="_blank"),
                         ")"
                     ], style={"fontSize": "12px", "color": "#666", "marginTop": "10px"}),
                     html.Div(f"App version: {get_app_version()}", style={"fontSize": "12px", "color": "#666"}),
+
+                    # =======================
+                    # HIDDEN ELEMENTS
+                    # =======================
                     # hidden polling interval
                     dcc.Interval(id="progress-poller", interval=2000, disabled=True),
                     # stores for some of the callback outputs
@@ -119,12 +206,11 @@ app.layout = dbc.Container(
                     # store matched segments and nodes
                     dcc.Store(id="geojson-store-full", data={}),
                     # store filtered & aggregated matched segments and nodes
-                    dcc.Store(id="geojson-store-filtered", data={})
+                    dcc.Store(id="geojson-store-filtered", data={}),
                 ],
                 # panel width out of 12
                 width=3
             ),
-
             # Right panel
             dbc.Col(
                 [
@@ -155,61 +241,6 @@ app.layout = dbc.Container(
                             )
                         ])), width=4),
                     ], className="mb-3"),
-                    # Controls row
-                    dbc.Row([
-                        dbc.Col(
-                            dbc.Button("Reset Map", id="reset-map-btn", color="secondary", style={"marginLeft": "20px"}),
-                            style={"display": "flex", "alignItems": "center"},
-                            width=2,
-                        ),
-                        dbc.Col(
-                            dcc.Checklist(
-                                id="checkbox-show-hover",
-                                options=[{"label": "Track Focus", "value": "hover"}],
-                                value=[],  # default is unchecked, i.e., hover off
-                                inputStyle={"margin-right": "5px"},
-                                labelStyle={"display": "inline-block", "margin-right": "10px"},
-                            ),
-                            width=2,
-                        ),
-                        dbc.Col(
-                            html.Div(
-                                [
-                                    dbc.Label("Select Years"),
-                                    dcc.RangeSlider(
-                                        min=SLIDER_MIN_YEAR,
-                                        max=SLIDER_MAX_YEAR,
-                                        step=1,
-                                        id="year-slider",
-                                        marks=None,
-                                        tooltip={"placement": "bottom", "always_visible": True},
-                                        value=[SLIDER_MIN_YEAR, SLIDER_MAX_YEAR],
-                                        #className="p-0",
-                                    ),
-                                ],
-                                className="mb-4",
-                            ),
-                            width=3,
-                        ),
-                        dbc.Col(
-                            html.Div(
-                                [
-                                    dbc.Label("Node Cluster Radius", html_for="cluster-radius-slider"),
-                                    dcc.Slider(
-                                        id="cluster-radius-slider",
-                                        min=20,
-                                        max=320,
-                                        step=10,
-                                        value=100,
-                                        marks={i: str(i) for i in range(20, 321, 50)},
-                                        tooltip={"placement": "bottom", "always_visible": True}
-                                    )
-                                ], 
-                                className="mb-4"
-                            ),
-                            width=3,
-                        )
-                    ], className="mb-2", align="center"),
                     # Map & panels
                     dbc.Row([
                         dbc.Col(
@@ -217,7 +248,7 @@ app.layout = dbc.Container(
                             dl.Map(
                                 center=INITIAL_CENTER, 
                                 zoom=INITIAL_ZOOM,
-                                style={"width": "100%", "height": "500px"},
+                                style={"width": "100%", "height": "625px"},
                                 children=[
                                     # https://www.dash-leaflet.com/components/controls/layers_control (v1.1.2)
                                     dl.LayersControl(
@@ -312,7 +343,7 @@ app.layout = dbc.Container(
                                                 page_size=10,
                                                 row_selectable="multi",
                                                 style_table={
-                                                    'maxHeight': '400px',
+                                                    'maxHeight': '450px',
                                                     'overflowY': 'auto',
                                                     'overflowX': 'auto',
                                                     'border': 'thin lightgrey solid'
@@ -363,7 +394,7 @@ app.layout = dbc.Container(
                                                 page_size=10,
                                                 row_selectable="multi",
                                                 style_table={
-                                                    'maxHeight': '400px',
+                                                    'maxHeight': '450px',
                                                     'overflowY': 'auto',
                                                     'overflowX': 'auto',
                                                     'border': 'thin lightgrey solid'
