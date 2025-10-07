@@ -16,6 +16,7 @@ COLOR_SEGMENT = '#33A7AA'                   # fixed color (alternatives: #78A2D2
 COLOR_PROCESSING = '#343a40'
 COLOR_HIGHLIGHT_SEGMENT = "red"
 COLOR_HIGHLIGHT_NODE = "purple"
+FONT_MAIN = "Segoe UI, sans-serif"
 
 # Map settings
 INITIAL_CENTER =  [50.65, 4.45]

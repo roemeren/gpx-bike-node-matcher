@@ -38,12 +38,12 @@ def make_gpx_tooltip(feature):
         <span style="color:#999; font-size:14px;">Track </span>
         <span style="color:#000; font-size:16px; font-weight:bold;">{row['track_name']}</span>
         <br><br>
-        <span style="color:#999; font-size:11px;">Date: </span>
-        <span style="color:#000; font-size:11px; font-weight:bold;">{date_str}</span><br>
-        <span style="color:#999; font-size:11px;">Distance: </span>
-        <span style="color:#000; font-size:11px; font-weight:bold;">{row['track_length']:.2f} km</span><br>
-        <span style="color:#999; font-size:11px;">File: </span>
-        <span style="color:#000; font-size:11px; font-weight:bold;">{row['gpx_name']}</span>
+        <span style="color:#999; font-size:12px;">Date: </span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{date_str}</span><br>
+        <span style="color:#999; font-size:12px;">Distance: </span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{row['track_length']:.2f} km</span><br>
+        <span style="color:#999; font-size:12px;">File: </span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{row['gpx_name']}</span>
         <br><br>
         <i style="color:#999; font-size:14px;">Click to zoom in on this track</i>
     </div>

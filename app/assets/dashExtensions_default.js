@@ -16,7 +16,7 @@ window.dashExtensions = Object.assign({}, window.dashExtensions, {
                     border-radius: 50%;
                     font-weight: bold;
                     font-size: 16px;
-                    font-family: 'Trebuchet MS', sans-serif;
+                    font-family: 'Segoe UI', sans-serif;
                     border: 4px solid #33A7AA;
                 ">${label}</div>`,
                 iconSize: [40, 40],

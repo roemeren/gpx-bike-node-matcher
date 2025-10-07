@@ -121,6 +121,7 @@ app.layout = dbc.Container(
                     # store filtered & aggregated matched segments and nodes
                     dcc.Store(id="geojson-store-filtered", data={})
                 ],
+                # panel width out of 12
                 width=3
             ),
 
@@ -209,186 +210,201 @@ app.layout = dbc.Container(
                             width=3,
                         )
                     ], className="mb-2", align="center"),
-                    # Map
-                    dl.Map(
-                        center=INITIAL_CENTER, 
-                        zoom=INITIAL_ZOOM,
-                        style={"width": "100%", "height": "500px"},
-                        children=[
-                            # https://www.dash-leaflet.com/components/controls/layers_control (v1.1.2)
-                            dl.LayersControl(
-                                [
-                                    dl.BaseLayer(
-                                        dl.TileLayer(
-                                            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-                                            attribution='&copy; OSM &copy; <a href="https://carto.com/">CARTO</a>'
-                                        ),
-                                        name="Carto Light",
-                                        checked=True
-                                    ),
-                                    dl.BaseLayer(
-                                        dl.TileLayer(
-                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-                                            attribution='&copy; OSM &copy; CARTO'
-                                        ),
-                                        name="Carto Voyager Lite",
-                                        checked=False
-                                    ),
-                                ]
-                                + [
-                                    dl.Overlay(
-                                        # Preloaded network layer (initially hidden)
-                                        dl.GeoJSON(
-                                            data=geojson_network,
-                                            id='geojson-network',
-                                            options=dict(style=dict(color=COLOR_NETWORK, weight=1, opacity=0.6))
-                                        ), 
-                                        name="Bike Node Network", 
-                                        checked=False,
-                                    ),
-                                    dl.Overlay(
-                                        dl.GeoJSON(
-                                            id='layer-gpx', 
-                                            style=ns("gpxStyle"),
-                                            options=dict(onEachFeature=ns("gpxBindTooltip")),
-                                            # initialize hideout
-                                            hideout=dict(
-                                                selected_id=None,
-                                                selected_key=SELECTED_KEY,
-                                                selected_color=COLOR_GPX_SELECTED
+                    # Map & panels
+                    dbc.Row([
+                        dbc.Col(
+                            # Map
+                            dl.Map(
+                                center=INITIAL_CENTER, 
+                                zoom=INITIAL_ZOOM,
+                                style={"width": "100%", "height": "500px"},
+                                children=[
+                                    # https://www.dash-leaflet.com/components/controls/layers_control (v1.1.2)
+                                    dl.LayersControl(
+                                        [
+                                            dl.BaseLayer(
+                                                dl.TileLayer(
+                                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                                                    attribution='&copy; OSM &copy; <a href="https://carto.com/">CARTO</a>'
+                                                ),
+                                                name="Carto Light",
+                                                checked=True
+                                            ),
+                                            dl.BaseLayer(
+                                                dl.TileLayer(
+                                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+                                                    attribution='&copy; OSM &copy; CARTO'
+                                                ),
+                                                name="Carto Voyager Lite",
+                                                checked=False
+                                            ),
+                                        ]
+                                        + [
+                                            dl.Overlay(
+                                                # Preloaded network layer (initially hidden)
+                                                dl.GeoJSON(
+                                                    data=geojson_network,
+                                                    id='geojson-network',
+                                                    options=dict(style=dict(color=COLOR_NETWORK, weight=1, opacity=0.6))
+                                                ), 
+                                                name="Bike Node Network", 
+                                                checked=False,
+                                            ),
+                                            dl.Overlay(
+                                                dl.GeoJSON(
+                                                    id='layer-gpx', 
+                                                    style=ns("gpxStyle"),
+                                                    options=dict(onEachFeature=ns("gpxBindTooltip")),
+                                                    # initialize hideout
+                                                    hideout=dict(
+                                                        selected_id=None,
+                                                        selected_key=SELECTED_KEY,
+                                                        selected_color=COLOR_GPX_SELECTED
+                                                    )
+                                                ),
+                                                name="GPX Tracks",
+                                                checked=False,
                                             )
-                                        ),
-                                        name="GPX Tracks",
-                                        checked=False,
-                                    )
-                                ],
-                                id="layers-control",
-                                # show all available layers without collapsing
-                                collapsed=False,
-                                # sort layers by name rather than load order
-                                sortLayers=True
-                            ),
-                            # Matched segments & nodes layers (drawn on top of network)
-                            dl.GeoJSON(
-                                id="layer-segments",
-                                style=ns("segmentStyle"),
-                                hideout=dict(weight_classes=WEIGHT_CLASSES_SEGMENT, weights=WEIGHTS_SEGMENT, color=COLOR_SEGMENT),
-                            ),
-                            dl.GeoJSON(
-                                id="layer-nodes",
-                                cluster=True,
-                                zoomToBoundsOnClick=True,
-                                pointToLayer=ns("pointToLayer"),
-                            ),
-                            # Highlighted segments
-                            dl.LayerGroup(id="layer-selected-segments"),
-                            # Highlighted segments from nodes
-                            dl.LayerGroup(id="layer-selected-nodes")           
-                        ],
-                        id="map"
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                [
-                                    html.H4("Segment Statistics"),
-                                    html.P(
-                                        "Select one or more segments in the table to highlight them on the map (in red).",
-                                        style={"fontStyle": "italic", "color": "#555", "marginTop": "5px"}
+                                        ],
+                                        id="layers-control",
+                                        # show all available layers without collapsing
+                                        collapsed=False,
+                                        # sort layers by name rather than load order
+                                        sortLayers=True
                                     ),
-                                    html.Button("Unselect All", id="unselect-all-btn-seg", style={"display": "none"}),
-                                    dash_table.DataTable(
-                                        id="table-segments-agg",
-                                        columns=[],
-                                        data=[],
-                                        page_size=25,
-                                        row_selectable="multi", # <-- enable row selection
-                                        style_table={
-                                            'maxHeight': '400px',
-                                            'overflowY': 'auto',
-                                            'overflowX': 'auto',
-                                            'border': 'thin lightgrey solid'
-                                        },
-                                        style_header={
-                                            'backgroundColor': COLOR_SEGMENT,
-                                            'fontWeight': 'bold',
-                                            'color': 'white',
-                                            'textAlign': 'center',
-                                            'fontFamily': 'Aptos, sans-serif',
-                                        },
-                                        style_cell={
-                                            'textAlign': 'left',
-                                            'padding': '5px',
-                                            'minWidth': '80px',
-                                            'width': '150px',
-                                            'maxWidth': '200px',
-                                            'whiteSpace': 'normal',
-                                            'height': 'auto',
-                                            'fontFamily': 'Aptos, sans-serif',
-                                        },
-                                        style_data={
-                                            'backgroundColor': 'white',
-                                            'color': 'black'
-                                        },
-                                        fixed_rows={'headers': True},
-                                        sort_action='native'
-                                    )
-                                ],
-                                width=6,
-                                style={"paddingRight": "10px"}  # add space to the right
-                            ),
-                            dbc.Col(
-                                [
-                                    html.H4("Node Statistics"),
-                                    html.P(
-                                        "Select one or more nodes in the table to highlight their segments on the map (in purple).",
-                                        style={"fontStyle": "italic", "color": "#555", "marginTop": "5px"}
+                                    # Matched segments & nodes layers (drawn on top of network)
+                                    dl.GeoJSON(
+                                        id="layer-segments",
+                                        style=ns("segmentStyle"),
+                                        hideout=dict(weight_classes=WEIGHT_CLASSES_SEGMENT, weights=WEIGHTS_SEGMENT, color=COLOR_SEGMENT),
                                     ),
-                                    html.Button("Unselect All", id="unselect-all-btn-nodes", style={"display": "none"}),
-                                    dash_table.DataTable(
-                                        id="table-nodes-agg",
-                                        columns=[],
-                                        data=[],
-                                        page_size=25,
-                                        row_selectable="multi", # <-- enable row selection
-                                        style_table={
-                                            'maxHeight': '400px',
-                                            'overflowY': 'auto',
-                                            'overflowX': 'auto',
-                                            'border': 'thin lightgrey solid'
-                                        },
-                                        style_header={
-                                            'backgroundColor': '#0074D9',
-                                            'fontWeight': 'bold',
-                                            'color': 'white',
-                                            'textAlign': 'center',
-                                            'fontFamily': 'Aptos, sans-serif',
-                                        },
-                                        style_cell={
-                                            'textAlign': 'left',
-                                            'padding': '5px',
-                                            'minWidth': '80px',
-                                            'width': '150px',
-                                            'maxWidth': '200px',
-                                            'whiteSpace': 'normal',
-                                            'height': 'auto',
-                                            'fontFamily': 'Aptos, sans-serif',
-                                        },
-                                        style_data={
-                                            'backgroundColor': 'white',
-                                            'color': 'black'
-                                        },
-                                        fixed_rows={'headers': True},
-                                        sort_action='native'
-                                    )
+                                    dl.GeoJSON(
+                                        id="layer-nodes",
+                                        cluster=True,
+                                        zoomToBoundsOnClick=True,
+                                        pointToLayer=ns("pointToLayer"),
+                                    ),
+                                    # Highlighted segments
+                                    dl.LayerGroup(id="layer-selected-segments"),
+                                    # Highlighted segments from nodes
+                                    dl.LayerGroup(id="layer-selected-nodes")           
                                 ],
-                                width=6,
-                                style={"paddingLeft": "10px"}   # add space to the left
-                            )
-                        ],
-                        className="mt-4"
-                    )
+                                id="map"
+                            ),
+                            width=7
+                        ),
+                        dbc.Col(
+                            dbc.Tabs(
+                                [
+                                    dbc.Tab(
+                                        label="Segment Statistics",
+                                        tab_id="tab-segments",
+                                        children=[
+                                            html.P(
+                                                "Select one or more segments in the table to highlight them on the map (in red).",
+                                                style={"fontStyle": "italic", "color": "#555", "marginTop": "5px", "fontSize": "13px"}
+                                            ),
+                                            html.Button("Unselect All", id="unselect-all-btn-seg", style={"display": "none"}),
+                                            dash_table.DataTable(
+                                                id="table-segments-agg",
+                                                columns=[],
+                                                data=[],
+                                                page_size=10,
+                                                row_selectable="multi",
+                                                style_table={
+                                                    'maxHeight': '400px',
+                                                    'overflowY': 'auto',
+                                                    'overflowX': 'auto',
+                                                    'border': 'thin lightgrey solid'
+                                                },
+                                                style_header={
+                                                    'backgroundColor': COLOR_SEGMENT,
+                                                    'fontWeight': 'bold',
+                                                    'color': 'white',
+                                                    'textAlign': 'center',
+                                                    'fontFamily': FONT_MAIN,
+                                                },
+                                                style_cell={
+                                                    "textAlign": "center",
+                                                    "padding": "5px",
+                                                    "minWidth": "0px",
+                                                    "maxWidth": "none",
+                                                    "whiteSpace": "normal",
+                                                    "fontFamily": FONT_MAIN,
+                                                },
+                                                # explicitly make some columns wider
+                                                style_cell_conditional=[
+                                                    {"if": {"column_id": "segment"}, "width": "90px"},
+                                                    {"if": {"column_id": "count_track"}, "width": "75px"},
+                                                    {"if": {"column_id": "length_km"}, "width": "75px"},
+                                                ],
+                                                style_data={
+                                                    'backgroundColor': 'white',
+                                                    'color': 'black',
+                                                },
+                                                fixed_rows={'headers': True},
+                                                sort_action='native'
+                                            ),
+                                        ],
+                                    ),
+                                    dbc.Tab(
+                                        label="Node Statistics",
+                                        tab_id="tab-nodes",
+                                        children=[
+                                            html.P(
+                                                "Select one or more nodes in the table to highlight their segments on the map (in purple).",
+                                                style={"fontStyle": "italic", "color": "#555", "marginTop": "5px", "fontSize": "13px"}
+                                            ),
+                                            html.Button("Unselect All", id="unselect-all-btn-nodes", style={"display": "none"}),
+                                            dash_table.DataTable(
+                                                id="table-nodes-agg",
+                                                columns=[],
+                                                data=[],
+                                                page_size=10,
+                                                row_selectable="multi",
+                                                style_table={
+                                                    'maxHeight': '400px',
+                                                    'overflowY': 'auto',
+                                                    'overflowX': 'auto',
+                                                    'border': 'thin lightgrey solid'
+                                                },
+                                                style_header={
+                                                    'backgroundColor': COLOR_SEGMENT,
+                                                    'fontWeight': 'bold',
+                                                    'color': 'white',
+                                                    'textAlign': 'center',
+                                                    'fontFamily': FONT_MAIN,
+                                                },
+                                                style_cell={
+                                                    "textAlign": "center",
+                                                    "padding": "5px",
+                                                    "minWidth": "0px",
+                                                    "maxWidth": "none",
+                                                    "whiteSpace": "normal",
+                                                    'fontFamily': FONT_MAIN,
+                                                },
+                                                # explicitly make track count column wider
+                                                style_cell_conditional=[
+                                                    {"if": {"column_id": "count_track"}, "width": "75px"},
+                                                ],
+                                                style_data={
+                                                    'backgroundColor': 'white',
+                                                    'color': 'black'
+                                                },
+                                                fixed_rows={'headers': True},
+                                                sort_action='native'
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                                id="stats-tabs",
+                                active_tab="tab-segments",
+                            ),
+                            width=5,
+                        )
+                    ])
                 ],
+                # right panel width (out of 12)
                 width=9
             )
         ])
@@ -566,6 +582,7 @@ def filter_data(store, slider):
     def build_tooltip(label_prefix, label_value, kpi_dict):
         # First line: prefix in light grey, value in black and larger font
         tooltip_lines = [
+            # optional: add font-family: {FONT_MAIN} but default looks better imo
             f'<span style="color: #999; font-size: 14px;">{label_prefix}</span>'
             f'<span style="color: #000; font-size: 16px; font-weight: bold;">{label_value}</span>'
             '<br>'  # simple line break for spacing
@@ -574,8 +591,8 @@ def filter_data(store, slider):
         # KPI lines in smaller font
         for kpi_name, kpi_value in kpi_dict.items():
             tooltip_lines.append(
-                f'<span style="color: #999; font-size: 11px;">{kpi_name}: </span>'
-                f'<b style="color: #000; font-size: 11px;">{kpi_value}</b>'
+                f'<span style="color: #999; font-size: 12px;">{kpi_name}: </span>'
+                f'<b style="color: #000; font-size: 12px;">{kpi_value}</b>'
             )
         return "<br>".join(tooltip_lines)
 
@@ -726,9 +743,33 @@ def update_tables(filtered_data):
     agg_nodes = agg_nodes.drop(columns=["tooltip", "geometry"])
     agg_nodes = agg_nodes.rename(columns={"rcn_ref": "node"})
 
-    seg_columns = [{"name": c, "id": c} for c in agg_seg.columns]
+    # columns that are shown/hidden in the segments table
+    COL_LABELS = {
+        "segment": "Segment",
+        "count_track": "Visits",
+        "length_km": "Length (km)",
+        "first_date": "First visit",
+        "last_date": "Last visit",
+    } 
+    seg_columns = [
+        {"name": COL_LABELS.get(c, c.replace("_", " ").title()), "id": c}
+        for c in agg_seg.columns
+        if c not in ["osm_id", "max_overlap_percentage"]
+    ]
     seg_data = agg_seg.to_dict("records")
-    node_columns = [{"name": c, "id": c} for c in agg_nodes.columns]
+
+    # columns that are shown/hidden in the nodes table
+    COL_LABELS = {
+        "node": "Node",
+        "count_track": "Visits",
+        "first_date": "First visit",
+        "last_date": "Last visit",
+    } 
+    node_columns = [
+        {"name": COL_LABELS.get(c, c.replace("_", " ").title()), "id": c}
+        for c in agg_nodes.columns
+        if c not in ["osm_id"]
+    ]
     node_data = agg_nodes.to_dict("records")
 
     outputs = seg_data, seg_columns, node_data, node_columns, \
