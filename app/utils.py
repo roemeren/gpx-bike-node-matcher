@@ -48,7 +48,7 @@ def make_gpx_tooltip(feature):
         <span style="color:#999; font-size:12px;">File: </span>
         <span style="color:#000; font-size:12px; font-weight:bold;">{row['gpx_name']}</span><br>
         <span style="color:#999; font-size:12px;">Matched: </span>
-        <span style="color:#000; font-size:12px; font-weight:bold;">{matched_text}</span><br>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{matched_text}</span>
         <br><br>
         <i style="color:#999; font-size:14px;">Click to zoom in on this track</i>
     </div>

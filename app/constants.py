@@ -26,7 +26,7 @@ SLIDER_MIN_YEAR=2010
 SLIDER_MAX_YEAR=datetime.datetime.now().year
 
 # App settings
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 # JS settings
 SELECTED_KEY = "track_uid"
