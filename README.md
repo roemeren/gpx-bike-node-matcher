@@ -1,5 +1,6 @@
 # Bike Node Network Matcher 🚲
 
+![App Deployment Status](https://github.com/roemeren/gpx-bike-node-matcher/workflows/Deploy%20Application/badge.svg)
 ![GitHub tag (latest)](https://img.shields.io/github/v/tag/roemeren/gpx-bike-node-matcher)
 ![Last Commit](https://img.shields.io/github/last-commit/roemeren/gpx-bike-node-matcher)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
