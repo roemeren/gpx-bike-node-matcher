@@ -21,12 +21,12 @@ _processing_thread = None
 
 # --- load data ---
 if os.getenv("RENDER") == "true":
-    # use full version of the app using the full network
+    # use 'lite' version of the app containing only the Belgian network
     folder = OUTPUT_FOLDER_LITE
     app_header = "Belgian Bike Node Network Matcher"
     app_descr = "Upload a zip file with your GPX rides to see how they align with Belgium’s bike node network."
 else:
-    # use 'lite' version of the app containing only the Belgian network
+    # use full version of the app using the full network
     folder = OUTPUT_FOLDER_FULL
     app_header = "Bike Node Network Matcher"
     app_descr = "Upload a ZIP file with your GPX rides to see how they align with the Belgian and Dutch bike node networks.",
