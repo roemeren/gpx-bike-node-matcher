@@ -141,7 +141,7 @@ def enrich_with_osm_ids(
     gdf_multiline['osm_id_to'] = osm_to_list
 
     # --- Step 2: add match flag ---
-    def match_flag(row):
+    def _match_flag(row):
         if pd.notna(row['osm_id_from']) and pd.notna(row['osm_id_to']):
             return 'full'
         elif pd.isna(row['osm_id_from']) and pd.isna(row['osm_id_to']):
@@ -149,7 +149,7 @@ def enrich_with_osm_ids(
         else:
             return 'partial'
 
-    gdf_multiline['osm_match_flag'] = gdf_multiline.apply(match_flag, axis=1)
+    gdf_multiline['osm_match_flag'] = gdf_multiline.apply(_match_flag, axis=1)
 
     # --- Step 3: summary and printout ---
     missing = gdf_multiline[gdf_multiline['osm_match_flag'] != 'full']
@@ -243,7 +243,7 @@ def clean_ref(ref: str, logging: bool = False) -> str | None:
         print(f"Invalid: '{original}' → None")
         return None
 
-def process_osm_data(tqdm_params):
+def process_osm_data():
     """
     Download Belgium OSM data, process segments and points, 
     enrich segments with OSM node IDs, and save GeoJSON outputs.
@@ -273,6 +273,12 @@ def process_osm_data(tqdm_params):
                 )
             except subprocess.CalledProcessError as e:
                 print(f"[ERROR] Script failed for region '{region}': {e}")
+
+        # tqdm for Local usage (more frequent updates)
+        tqdm_params = TQDM_DEFAULT
+    else:
+        # tqdm for GitHub Actions / CI (less frequent updates)
+        tqdm_params = dict(mininterval=5.0, miniters=50) 
 
     # Read and combine layers from geopackage
     print(f"[INFO] Reading GeoPackage: {INPUT_GPKG}")
@@ -423,11 +429,4 @@ def process_osm_data(tqdm_params):
     print("[INFO] All outputs saved successfully.")
 
 if __name__ == "__main__":
-    current_os = platform.system()
-    if current_os == "Windows":
-        # Local usage (more frequent updates)
-        tqdm_params = TQDM_DEFAULT
-    else:
-        # GitHub Actions / CI (less frequent updates)
-        tqdm_params = dict(mininterval=5.0, miniters=50) 
-    process_osm_data(tqdm_params)
+    process_osm_data()
