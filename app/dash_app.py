@@ -158,8 +158,8 @@ app.layout = dbc.Container(
                     dbc.Row([
                         dbc.Col(
                             dbc.Button("Reset Map", id="reset-map-btn", color="secondary", style={"marginLeft": "20px"}),
-                            width="auto",
-                            style={"display": "flex", "alignItems": "center"}
+                            style={"display": "flex", "alignItems": "center"},
+                            width=2,
                         ),
                         dbc.Col(
                             dcc.Checklist(
@@ -168,52 +168,45 @@ app.layout = dbc.Container(
                                 value=[],  # default is unchecked, i.e., hover off
                                 inputStyle={"margin-right": "5px"},
                                 labelStyle={"display": "inline-block", "margin-right": "10px"},
-                            )
+                            ),
+                            width=2,
                         ),
                         dbc.Col(
-                            html.Div([
-                                dbc.Label("From", html_for="start-date-picker"),
-                                dcc.DatePickerSingle(
-                                    id="start-date-picker",
-                                    date=DATE_PICKER_MIN_DATE,
-                                    display_format="DD/MM/YYYY",
-                                    month_format="MMMM YYYY",
-                                    style={"height": "40px", "zIndex": 9999, "position": "relative"}
-                                )
-                            ]),
-                            width="auto",
-                            # zIndex and position ensure the calendar popup is on top of the map
-                            style={"marginLeft": "20px", "height": "40px", "zIndex": 9999, "position": "relative"}
+                            html.Div(
+                                [
+                                    dbc.Label("Select Years"),
+                                    dcc.RangeSlider(
+                                        min=SLIDER_MIN_YEAR,
+                                        max=SLIDER_MAX_YEAR,
+                                        step=1,
+                                        id="year-slider",
+                                        marks=None,
+                                        tooltip={"placement": "bottom", "always_visible": True},
+                                        value=[SLIDER_MIN_YEAR, SLIDER_MAX_YEAR],
+                                        #className="p-0",
+                                    ),
+                                ],
+                                className="mb-4",
+                            ),
+                            width=3,
                         ),
                         dbc.Col(
-                            html.Div([
-                                dbc.Label("To", html_for="end-date-picker"),
-                                dcc.DatePickerSingle(
-                                    id="end-date-picker",
-                                    date=DATE_PICKER_MAX_DATE,
-                                    display_format="DD/MM/YYYY",
-                                    month_format="MMMM YYYY",
-                                    style={"height": "40px", "zIndex": 9999, "position": "relative"}
-                                )
-                            ]),
-                            width="3",
-                            # zIndex and position ensure the calendar popup is on top of the map
-                            style={"marginLeft": "20px", "height": "40px", "zIndex": 9999, "position": "relative"}
-                        ),
-                        dbc.Col(
-                            html.Div([
-                                dbc.Label("Node Cluster Radius", html_for="cluster-radius-slider"),
-                                dcc.Slider(
-                                    id="cluster-radius-slider",
-                                    min=20,
-                                    max=300,
-                                    step=10,
-                                    value=100,
-                                    marks={i: str(i) for i in range(20, 301, 50)},
-                                    tooltip={"always_visible": True}
-                                )
-                            ]),
-                            width="3"
+                            html.Div(
+                                [
+                                    dbc.Label("Node Cluster Radius", html_for="cluster-radius-slider"),
+                                    dcc.Slider(
+                                        id="cluster-radius-slider",
+                                        min=20,
+                                        max=320,
+                                        step=10,
+                                        value=100,
+                                        marks={i: str(i) for i in range(20, 321, 50)},
+                                        tooltip={"placement": "bottom", "always_visible": True}
+                                    )
+                                ], 
+                                className="mb-4"
+                            ),
+                            width=3,
                         )
                     ], className="mb-2", align="center"),
                     # Map
@@ -537,10 +530,9 @@ def update_progress(*_):
     Output("kpi-totlength", "children"),
     Output("geojson-store-filtered", "data"),
     Input("geojson-store-full", "data"),
-    Input("start-date-picker", "date"),
-    Input("end-date-picker", "date"),
+    Input("year-slider", "value"),
 )
-def filter_data(store, start_date, end_date):
+def filter_data(store, slider):
     """Filter bike segments and nodes by date and compute KPIs."""
     
     if not store or not store.get("segments", {}).get("features"):
@@ -554,11 +546,9 @@ def filter_data(store, start_date, end_date):
     gdf_nodes["track_date"] = pd.to_datetime(gdf_nodes["track_date"]).dt.date
     gdf_gpx["track_date"] = pd.to_datetime(gdf_gpx["track_date"]).dt.date
 
-    try:
-        start = pd.to_datetime(start_date).date() if start_date else gdf_segments["track_date"].min()
-        end = pd.to_datetime(end_date).date() if end_date else gdf_segments["track_date"].max()
-    except Exception:
-        return None, None, None, {}
+    start_year, end_year = slider
+    start=datetime.date(start_year, 1, 1)
+    end=datetime.date(end_year, 12, 31)
 
     seg_mask = (gdf_segments["track_date"] >= start) & (gdf_segments["track_date"] <= end)
     node_mask = (gdf_nodes["track_date"] >= start) & (gdf_nodes["track_date"] <= end)

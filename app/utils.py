@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime
+import datetime
 
 DATA_VERSION_FILE = Path("data/processed/DATA_VERSION")
 VERSION_FILE = Path("VERSION")
@@ -10,7 +10,7 @@ def get_data_version():
         raw = DATA_VERSION_FILE.read_text().strip()
         try:
             # Parse YYMMDD
-            dt = datetime.strptime(raw, "%y%m%d")
+            dt = datetime.datetime.strptime(raw, "%y%m%d")
             return dt.strftime("%d-%b-%Y")  # e.g., 22-Sep-2025
         except Exception:
             return raw

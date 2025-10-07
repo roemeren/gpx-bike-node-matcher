@@ -21,11 +21,11 @@ COLOR_HIGHLIGHT_NODE = "purple"
 INITIAL_CENTER =  [50.65, 4.45]
 INITIAL_ZOOM = 8
 KEEP_TRACK_SELECTION_ACTIVE = True
-DATE_PICKER_MIN_DATE = datetime.date(2010, 1, 1)
-DATE_PICKER_MAX_DATE = datetime.date.today()
+SLIDER_MIN_YEAR=2010
+SLIDER_MAX_YEAR=datetime.datetime.now().year
 
 # App settings
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 # JS settings
 SELECTED_KEY = "track_uid"
