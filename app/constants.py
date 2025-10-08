@@ -9,10 +9,15 @@ COLOR_GPX_CARTO_LIGHT = '#FC4C02'
 COLOR_GPX_CARTO_VOYAGER = '#D62728'
 COLOR_GPX_SELECTED = '#A3FF12'
 
+# Text
+MESSAGE_NO_DATA = "No data available"
+MESSAGE_NO_FILTERED_DATA = "No data available for the selected period"
+
 # Segment rendering
 WEIGHT_CLASSES_SEGMENT = [1, 5, 10, 20]     # thresholds for counts
 WEIGHTS_SEGMENT = [2, 4, 6, 8, 10]          # corresponding line weights
-COLOR_SEGMENT = '#33A7AA'                   # fixed color (alternatives: #78A2D2)
+COLOR_SEGMENT = '#33A7AA'                   # color matched nodes and segments
+COLOR_NODE = '#1F4E5F'                      # if separate node color is required
 COLOR_PROCESSING = '#343a40'
 COLOR_HIGHLIGHT_SEGMENT = "red"
 COLOR_HIGHLIGHT_NODE = "purple"
@@ -26,7 +31,7 @@ SLIDER_MIN_YEAR=2010
 SLIDER_MAX_YEAR=datetime.datetime.now().year
 
 # App settings
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 # JS settings
 SELECTED_KEY = "track_uid"

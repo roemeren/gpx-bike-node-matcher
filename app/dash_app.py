@@ -207,6 +207,9 @@ app.layout = dbc.Container(
                     dcc.Store(id="geojson-store-full", data={}),
                     # store filtered & aggregated matched segments and nodes
                     dcc.Store(id="geojson-store-filtered", data={}),
+                    # store chart layer visibility
+                    dcc.Store(id="chart-visibility-store", data={'Segments': True, 'Nodes': 'legendonly'}),
+                    dcc.Store(id="chart-mapping-store", data={}),
                 ],
                 # panel width out of 12
                 width=3
@@ -340,7 +343,7 @@ app.layout = dbc.Container(
                                         tab_id="tab-segments",
                                         children=[
                                             html.P(
-                                                "Select one or more segments in the table to highlight them on the map (in red).",
+                                                id="segment-statistics-descr",
                                                 style={"fontStyle": "italic", "color": "#555", "marginTop": "5px", "fontSize": "13px"}
                                             ),
                                             html.Button("Unselect All", id="unselect-all-btn-seg", style={"display": "none"}),
@@ -391,7 +394,7 @@ app.layout = dbc.Container(
                                         tab_id="tab-nodes",
                                         children=[
                                             html.P(
-                                                "Select one or more nodes in the table to highlight their segments on the map (in purple).",
+                                                id="node-statistics-descr",
                                                 style={"fontStyle": "italic", "color": "#555", "marginTop": "5px", "fontSize": "13px"}
                                             ),
                                             html.Button("Unselect All", id="unselect-all-btn-nodes", style={"display": "none"}),
@@ -408,7 +411,7 @@ app.layout = dbc.Container(
                                                     'border': 'thin lightgrey solid'
                                                 },
                                                 style_header={
-                                                    'backgroundColor': COLOR_SEGMENT,
+                                                    'backgroundColor': COLOR_NODE,
                                                     'fontWeight': 'bold',
                                                     'color': 'white',
                                                     'textAlign': 'center',
@@ -435,6 +438,64 @@ app.layout = dbc.Container(
                                             ),
                                         ],
                                     ),
+                                    # Chart
+                                    dbc.Tab(
+                                        label="Chart",
+                                        tab_id="tab-chart",
+                                        children = [
+                                            dbc.Card(
+                                                        dbc.CardBody([
+                                                            dbc.Row([
+                                                                dbc.Col([
+                                                                    dbc.Label("Aggregation Level"),
+                                                                    dcc.RadioItems(
+                                                                        id="agg-level",
+                                                                        options=[
+                                                                            {"label": "Year", "value": "Y"},
+                                                                            {"label": "Year/Month", "value": "M"},
+                                                                        ],
+                                                                        value="Y",
+                                                                        inline=True,
+                                                                        labelStyle={"margin-right": "15px"},
+                                                                    )
+                                                                ], md=4),
+
+                                                                dbc.Col([
+                                                                    dbc.Label("Plot Type"),
+                                                                    dbc.RadioItems(
+                                                                        id="plot-type",
+                                                                        options=[
+                                                                            {"label": "Cumulative", "value": "cumulative"},
+                                                                            {"label": "Aggregate", "value": "aggregate"},
+                                                                        ],
+                                                                        value="cumulative",
+                                                                        inline=True,
+                                                                    ),
+                                                                ], md=3),
+
+                                                                dbc.Col([
+                                                                    dbc.Label("Filter Mode"),
+                                                                    dbc.RadioItems(
+                                                                        id="filter-mode",
+                                                                        options=[
+                                                                            {"label": "Include All", "value": "progress"},
+                                                                            {"label": "Only New", "value": "discoveries"},
+                                                                        ],
+                                                                        value="progress",
+                                                                        inline=True,
+                                                                    ),
+                                                                ], md=5),
+                                                            ], className="gy-2"),
+                                                        ]),
+                                                        className="mb-4 shadow-sm",
+                                                    ),
+                                                    dcc.Graph(
+                                                        id="line-chart", 
+                                                        config={"displayModeBar": False},
+                                                        style={"height": "425px",},
+                                                    ),
+                                        ]
+                                    )
                                 ],
                                 id="stats-tabs",
                                 active_tab="tab-segments",
@@ -589,35 +650,35 @@ def update_progress(*_):
     Input("geojson-store-full", "data"),
     Input("year-slider", "value"),
 )
-def filter_data(store, slider):
+def filter_data(store, date_range):
     """Filter bike segments and nodes by date and compute KPIs."""
     
     if not store or not store.get("segments", {}).get("features"):
-        return None, None, None, None, None, {}
+        return None, None, None, MESSAGE_NO_DATA, None, {}
 
     gdf_segments = gpd.GeoDataFrame.from_features(store["segments"]["features"])
     gdf_nodes = gpd.GeoDataFrame.from_features(store["nodes"]["features"])
     gdf_gpx = gpd.GeoDataFrame.from_features(store["gpx"]["features"])
 
-    gdf_segments["track_date"] = pd.to_datetime(gdf_segments["track_date"]).dt.date
-    gdf_nodes["track_date"] = pd.to_datetime(gdf_nodes["track_date"]).dt.date
-    gdf_gpx["track_date"] = pd.to_datetime(gdf_gpx["track_date"]).dt.date
+    # --- Ensure all datetime columns once ---
+    for df in [gdf_segments, gdf_nodes, gdf_gpx]:
+        for col in ["track_date", "track_date_min"]:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    start_year, end_year = slider
-    start=datetime.date(start_year, 1, 1)
-    end=datetime.date(end_year, 12, 31)
+    # --- Build datetime range ---
+    start_year, end_year = date_range
+    start = pd.Timestamp(start_year, 1, 1)
+    end = pd.Timestamp(end_year, 12, 31)
 
-    seg_mask = (gdf_segments["track_date"] >= start) & (gdf_segments["track_date"] <= end)
-    node_mask = (gdf_nodes["track_date"] >= start) & (gdf_nodes["track_date"] <= end)
-    gpx_mask = (gdf_gpx["track_date"] >= start) & (gdf_gpx["track_date"] <= end)
+    # --- Filter directly (datetime64 works perfectly) ---
+    seg_mask = gdf_segments["track_date"].between(start, end)
+    node_mask = gdf_nodes["track_date"].between(start, end)
+    gpx_mask = gdf_gpx["track_date"].between(start, end)
 
     gdf_segments_filtered = gdf_segments.loc[seg_mask].copy()
     gdf_nodes_filtered = gdf_nodes.loc[node_mask].copy()
     gdf_gpx_filtered = gdf_gpx.loc[gpx_mask].copy()
-
-    gdf_segments_filtered["track_date"] = pd.to_datetime(gdf_segments_filtered["track_date"])
-    gdf_nodes_filtered["track_date"] = pd.to_datetime(gdf_nodes_filtered["track_date"])
-    gdf_gpx_filtered["track_date"] = pd.to_datetime(gdf_gpx_filtered["track_date"])
 
     # Helper function for building tooltip
     def build_tooltip(label_prefix, label_value, kpi_dict):
@@ -645,16 +706,19 @@ def filter_data(store, slider):
         max_overlap_percentage=("overlap_percentage", "max"),
         first_date=("track_date", "min"),
         last_date=("track_date", "max"),
+        first_date_global=("track_date_min", "min"),
         # preserve geometry
         geometry=("geometry", "first")
     ).reset_index()
 
     agg_seg = gpd.GeoDataFrame(agg_seg, geometry="geometry", crs=gdf_segments_filtered.crs)
+    
     # Apply formatting and sort result
     agg_seg["length_km"] = agg_seg["length_km"].round(2)
     agg_seg["max_overlap_percentage"] = agg_seg["max_overlap_percentage"].round(2)
     agg_seg["first_date"] = agg_seg["first_date"].dt.strftime("%Y-%m-%d")
     agg_seg["last_date"] = agg_seg["last_date"].dt.strftime("%Y-%m-%d")
+    agg_seg["first_date_global"] = agg_seg["first_date_global"].dt.strftime("%Y-%m-%d")
     agg_seg = agg_seg.sort_values("count_track", ascending=False)
 
     # Add tooltip
@@ -679,6 +743,7 @@ def filter_data(store, slider):
         count_track=("track_date", "nunique"),
         first_date=("track_date", "min"),
         last_date=("track_date", "max"),
+        first_date_global=("track_date_min", "min"),
         # preserve geometry
         geometry=("geometry", "first")
     ).reset_index()
@@ -687,6 +752,7 @@ def filter_data(store, slider):
     # Apply formatting and sort result
     agg_nodes["first_date"] = agg_nodes["first_date"].dt.strftime("%Y-%m-%d")
     agg_nodes["last_date"] = agg_nodes["last_date"].dt.strftime("%Y-%m-%d")
+    agg_nodes["first_date_global"] = agg_nodes["first_date_global"].dt.strftime("%Y-%m-%d")
     agg_nodes = agg_nodes.sort_values("count_track", ascending=False)
 
     # Add tooltip
@@ -767,20 +833,24 @@ def update_node_layer(filtered_data, cluster_radius):
     Output("table-nodes-agg", "columns"),
     Output("unselect-all-btn-seg", "style"),
     Output("unselect-all-btn-nodes", "style"),
+    Output("segment-statistics-descr", "children"),
+    Output("node-statistics-descr", "children"),
     Input("geojson-store-filtered", "data"),
 )
 def update_tables(filtered_data):
     """Aggregate segment and node data for display in Dash tables."""
     
     if not filtered_data:
-        return [], [], [], [], {"display": "none"}, {"display": "none"}
+        return [], [], [], [], {"display": "none"}, {"display": "none"}, \
+            MESSAGE_NO_DATA, MESSAGE_NO_DATA
     
     agg_seg = gpd.GeoDataFrame.from_features(filtered_data["segments"]["features"])
     agg_nodes = gpd.GeoDataFrame.from_features(filtered_data["nodes"]["features"])
 
     # check if all data are filtered out
     if agg_seg.empty or agg_nodes.empty:
-        return [], [], [], [], {"display": "none"}, {"display": "none"}
+        return [], [], [], [], {"display": "none"}, {"display": "none"}, \
+            MESSAGE_NO_FILTERED_DATA, MESSAGE_NO_FILTERED_DATA
 
     # remove and rename columns
     agg_seg = agg_seg.drop(columns=["osm_id_from", "osm_id_to", "tooltip", "geometry"])
@@ -799,7 +869,7 @@ def update_tables(filtered_data):
     seg_columns = [
         {"name": COL_LABELS.get(c, c.replace("_", " ").title()), "id": c}
         for c in agg_seg.columns
-        if c not in ["osm_id", "max_overlap_percentage"]
+        if c not in ["osm_id", "max_overlap_percentage", "first_date_global"]
     ]
     seg_data = agg_seg.to_dict("records")
 
@@ -813,14 +883,108 @@ def update_tables(filtered_data):
     node_columns = [
         {"name": COL_LABELS.get(c, c.replace("_", " ").title()), "id": c}
         for c in agg_nodes.columns
-        if c not in ["osm_id"]
+        if c not in ["osm_id", "first_date_global"]
     ]
     node_data = agg_nodes.to_dict("records")
 
     outputs = seg_data, seg_columns, node_data, node_columns, \
-        {"display": "inline-block"}, {"display": "inline-block"}
-
+        {"display": "inline-block"}, {"display": "inline-block"}, \
+        "Select one or more segments in the table to highlight them on the map (in red).", \
+        "Select one or more nodes in the table to highlight their segments on the map (in purple)."
+    
     return outputs
+
+@app.callback(
+    Output("line-chart", "figure"),
+    Output("chart-mapping-store", "data"),
+    Input("geojson-store-filtered", "data"),
+    Input("agg-level", "value"),
+    Input("plot-type", "value"),
+    Input("filter-mode", "value"),
+    State("year-slider", "value"),
+    State("chart-visibility-store", "data"),
+)
+def update_chart(filtered_data, agg_level, plot_type, filter_mode, date_range, visibility_state):
+
+    if not filtered_data:
+        return build_empty_figure(MESSAGE_NO_DATA), {}
+
+    # get dataframes
+    agg_segs = gpd.GeoDataFrame.from_features(filtered_data["segments"]["features"])
+    agg_nodes = gpd.GeoDataFrame.from_features(filtered_data["nodes"]["features"])
+
+    if agg_segs.empty or agg_nodes.empty:
+        return build_empty_figure(MESSAGE_NO_FILTERED_DATA), {}
+
+    # date conversions
+    agg_segs["first_date"] = pd.to_datetime(agg_segs["first_date"])
+    agg_segs["first_date_global"] = pd.to_datetime(agg_segs["first_date_global"])
+    agg_nodes["first_date"] = pd.to_datetime(agg_nodes["first_date"])
+    agg_nodes["first_date_global"] = pd.to_datetime(agg_nodes["first_date_global"])
+
+    # get date range
+    start_year, end_year = date_range
+    start = datetime.date(start_year, 1, 1)
+    end = datetime.date(end_year, 12, 31)
+
+    # get chart settings
+    id_col = "osm_id"
+    if filter_mode == "discoveries":
+        date_col = "first_date_global"
+        # filter rows to only include new discoveries
+        agg_segs = agg_segs.query("@start <= first_date_global <= @end")
+        agg_nodes = agg_nodes.query("@start <= first_date_global <= @end")
+    else:
+        date_col = "first_date"
+    
+    # initialize dataframes
+    df_segs = prepare_chart_data(agg_segs, id_col, date_col, agg_level)
+    df_nodes = prepare_chart_data(agg_nodes, id_col, date_col, agg_level)
+
+    # calculate cumulative counts if needed
+    if plot_type == "cumulative":
+        df_segs["count"] = df_segs["count"].cumsum()
+        df_nodes["count"] = df_nodes["count"].cumsum()
+
+    # combine and plot
+    df_nodes["type"] = "Nodes"
+    df_segs["type"] = "Segments"
+    df_all = pd.concat([df_segs, df_nodes])
+
+    # in case of 'discoveries' the resulting data frame may still be empty
+    if df_all.empty:
+        return build_empty_figure(MESSAGE_NO_FILTERED_DATA)
+
+    fig = build_coverage_figure(df_all, agg_level, plot_type, filter_mode)
+
+    # apply saved visibility
+    for trace in fig.data:
+        if trace.name in visibility_state:
+            trace.visible = visibility_state[trace.name]
+
+    # store trace indices with their legend names so we can map restyleData indices back later
+    name_map = {i: trace.name for i, trace in enumerate(fig.data)}
+
+    return fig, name_map
+
+@app.callback(
+    Output("chart-visibility-store", "data"),
+    Input("line-chart", "restyleData"),
+    State("chart-visibility-store", "data"),
+    State("chart-mapping-store", "data"),
+)
+def update_chart_visibility(restyle_data, current, map_dict):
+    if not restyle_data or map_dict == {}:
+        return current
+
+    # Example restyleData: [{'visible': ['legendonly']}, [1]]
+    # Map the trace index from restyleData (e.g., [1]) back to its legend name using map_dict
+    update, trace_index = restyle_data # single-value lists
+    if "visible" in update:
+        # map_dict[str(trace_index[0])] gives us the trace name (e.g. "Nodes")
+        current[map_dict[str(trace_index[0])]] = update["visible"][0]
+    
+    return current
 
 @app.callback(
     Output("table-segments-agg", "selected_rows"),

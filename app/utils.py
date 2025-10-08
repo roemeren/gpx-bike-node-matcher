@@ -1,8 +1,17 @@
+from app.constants import *
 from pathlib import Path
 import datetime
+import plotly.express as px
+import plotly.graph_objects as go
+import plotly.io as pio
 
 DATA_VERSION_FILE = Path("data/processed/DATA_VERSION")
 VERSION_FILE = Path("VERSION")
+
+# --- change plotly settings ---
+pio.templates.default = "plotly_white"
+pio.templates["plotly_white"].layout.font.family = FONT_MAIN
+pio.templates["plotly_white"].layout.font.size = 13
 
 def get_data_version():
     """Return dataset version from DATA_VERSION as DD-MMM-YYYY, or 'unknown'."""
@@ -54,3 +63,68 @@ def make_gpx_tooltip(feature):
     </div>
     """
     return html_string
+
+def prepare_chart_data(df, id_col, date_col, freq="M"):
+    """Aggregate counts of unique IDs by period."""
+    df = df.copy()
+    df["period"] = df[date_col].dt.to_period("M" if freq == "M" else "Y").dt.to_timestamp()
+    agg = df.groupby("period")[id_col].nunique().reset_index(name="count")
+    return agg.sort_values("period")
+
+def build_empty_figure(message):
+    """Empty placeholder figure in case there are no data"""
+    fig = go.Figure()
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    fig.update_layout(
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        annotations=[
+            dict(
+                text=message,
+                x=0.5, y=0.5,
+                xref="paper", yref="paper",
+                showarrow=False,
+                font=dict(size=14, color="#888"),
+            )
+        ]
+    )
+    return fig
+
+def build_coverage_figure(df, agg_level, plot_type, filter_mode):
+
+    fig = px.line(
+        df,
+        x="period",
+        y="count",
+        color="type",
+        color_discrete_map={
+            "Nodes": COLOR_NODE,
+            "Segments": COLOR_SEGMENT
+        },
+        markers=True,
+        title=f"{'Cumulative' if plot_type=='cumulative' else 'Aggregate'} "
+              f"{'Network Coverage' if filter_mode=='progress' else 'New Discoveries'} Over Time",
+    )
+
+    if agg_level == "Y":
+        # Format tick labels as just the year
+        fig.update_xaxes(tickformat="%Y", dtick="M24")
+
+        # Update hover label to show only the year as well
+        fig.update_traces(hovertemplate="%{x|%Y}<br>%{y}")
+    else:
+        # Default monthly formatting
+        fig.update_xaxes(tickformat="%b %Y")
+        fig.update_traces(hovertemplate="%{x|%b %Y}<br>%{y}")
+
+    fig.update_layout(
+        xaxis_title="Period",
+        yaxis_title="Count",
+        legend_title="Element Type",
+        hovermode="x unified",
+        template="plotly_white",
+        margin=dict(l=40, r=20, t=60, b=40),
+    )
+
+    return fig

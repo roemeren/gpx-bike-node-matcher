@@ -266,6 +266,10 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     matched_uids = set(all_segments["track_uid"].unique())
     all_gpx_gdf["matched_flag"] = all_gpx_gdf["track_uid"].isin(matched_uids)
 
+    # --- add first matched date to segments and nodes ---
+    all_segments["track_date_min"] = all_segments.groupby("osm_id")["track_date"].transform("min")
+    all_nodes["track_date_min"] = all_nodes.groupby("osm_id")["track_date"].transform("min")
+
     return all_segments, all_nodes, all_gpx_gdf
 
 def create_result_zip(segments_path, nodes_path, gpx_path):
