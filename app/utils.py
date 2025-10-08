@@ -81,11 +81,11 @@ def build_empty_figure(message):
         paper_bgcolor="rgba(0,0,0,0)",
         annotations=[
             dict(
-                text=message,
+                text=f"<i>{message}</i>",
                 x=0.5, y=0.5,
                 xref="paper", yref="paper",
                 showarrow=False,
-                font=dict(size=14, color="#888"),
+                font=dict(size=14, color=COLOR_MESSAGE),
             )
         ]
     )
@@ -93,18 +93,48 @@ def build_empty_figure(message):
 
 def build_coverage_figure(df, agg_level, plot_type, filter_mode):
 
+    # Sort once for consistent order
+    sorted_df = df.sort_values("period").copy()
+
+    # Identify first & last rows
+    first_idx = sorted_df.index[0]
+    last_idx = sorted_df.index[-1]
+
+    # Create label column (strings only)
+    sorted_df["label"] = ""
+    sorted_df.loc[first_idx, "label"] = str(int(sorted_df.loc[first_idx, "count"]))
+    sorted_df.loc[last_idx, "label"] = str(int(sorted_df.loc[last_idx, "count"]))
+
+    # Optionally add middle label if enough data points
+    n_points = len(sorted_df)
+    if n_points >= 5:
+        # For odd → exact middle; for even → lower middle (e.g. 3rd for 6 points)
+        mid_pos = (n_points - 1) // 2
+        mid_idx = sorted_df.index[mid_pos]
+        sorted_df.loc[mid_idx, "label"] = str(int(sorted_df.loc[mid_idx, "count"]))
+
+    # Build figure
     fig = px.line(
-        df,
+        sorted_df,
         x="period",
         y="count",
         color="type",
         color_discrete_map={
-            "Nodes": COLOR_NODE,
-            "Segments": COLOR_SEGMENT
+            "node": COLOR_NODE,
+            "segment": COLOR_SEGMENT,
         },
         markers=True,
         title=f"{'Cumulative' if plot_type=='cumulative' else 'Aggregate'} "
               f"{'Network Coverage' if filter_mode=='progress' else 'New Discoveries'} Over Time",
+        text="label"
+    )
+
+    # Label styling
+    fig.update_traces(
+        textposition="top center",
+        texttemplate="<b>%{text}</b>",
+        textfont=dict(size=16),
+        showlegend=False,
     )
 
     if agg_level == "Y":
@@ -121,7 +151,7 @@ def build_coverage_figure(df, agg_level, plot_type, filter_mode):
     fig.update_layout(
         xaxis_title="Period",
         yaxis_title="Count",
-        legend_title="Element Type",
+        showlegend=False,
         hovermode="x unified",
         template="plotly_white",
         margin=dict(l=40, r=20, t=60, b=40),

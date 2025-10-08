@@ -207,9 +207,6 @@ app.layout = dbc.Container(
                     dcc.Store(id="geojson-store-full", data={}),
                     # store filtered & aggregated matched segments and nodes
                     dcc.Store(id="geojson-store-filtered", data={}),
-                    # store chart layer visibility
-                    dcc.Store(id="chart-visibility-store", data={'Segments': True, 'Nodes': 'legendonly'}),
-                    dcc.Store(id="chart-mapping-store", data={}),
                 ],
                 # panel width out of 12
                 width=3
@@ -344,7 +341,7 @@ app.layout = dbc.Container(
                                         children=[
                                             html.P(
                                                 id="segment-statistics-descr",
-                                                style={"fontStyle": "italic", "color": "#555", "marginTop": "5px", "fontSize": "13px"}
+                                                style={"fontStyle": "italic", "color": COLOR_MESSAGE, "marginTop": "5px", "fontSize": "13px"}
                                             ),
                                             html.Button("Unselect All", id="unselect-all-btn-seg", style={"display": "none"}),
                                             dash_table.DataTable(
@@ -395,7 +392,7 @@ app.layout = dbc.Container(
                                         children=[
                                             html.P(
                                                 id="node-statistics-descr",
-                                                style={"fontStyle": "italic", "color": "#555", "marginTop": "5px", "fontSize": "13px"}
+                                                style={"fontStyle": "italic", "color": COLOR_MESSAGE, "marginTop": "5px", "fontSize": "13px"}
                                             ),
                                             html.Button("Unselect All", id="unselect-all-btn-nodes", style={"display": "none"}),
                                             dash_table.DataTable(
@@ -440,15 +437,15 @@ app.layout = dbc.Container(
                                     ),
                                     # Chart
                                     dbc.Tab(
-                                        label="Chart",
+                                        label="Coverage Over Time",
                                         tab_id="tab-chart",
                                         children = [
                                             dbc.Card(
                                                         dbc.CardBody([
                                                             dbc.Row([
                                                                 dbc.Col([
-                                                                    dbc.Label("Aggregation Level"),
-                                                                    dcc.RadioItems(
+                                                                    dbc.Label("Date Level"),
+                                                                    dbc.RadioItems(
                                                                         id="agg-level",
                                                                         options=[
                                                                             {"label": "Year", "value": "Y"},
@@ -456,19 +453,31 @@ app.layout = dbc.Container(
                                                                         ],
                                                                         value="Y",
                                                                         inline=True,
-                                                                        labelStyle={"margin-right": "15px"},
                                                                     )
-                                                                ], md=4),
+                                                                ], md=3),
 
                                                                 dbc.Col([
                                                                     dbc.Label("Plot Type"),
                                                                     dbc.RadioItems(
                                                                         id="plot-type",
                                                                         options=[
-                                                                            {"label": "Cumulative", "value": "cumulative"},
-                                                                            {"label": "Aggregate", "value": "aggregate"},
+                                                                            {"label": "Cumul", "value": "cumulative"},
+                                                                            {"label": "Count", "value": "aggregate"},
                                                                         ],
                                                                         value="cumulative",
+                                                                        inline=True,
+                                                                    ),
+                                                                ], md=3),
+
+                                                                dbc.Col([
+                                                                    dbc.Label("Element Type"),
+                                                                    dbc.RadioItems(
+                                                                        id="element-type",
+                                                                        options=[
+                                                                            {"label": "Nodes", "value": "node"},
+                                                                            {"label": "Segments", "value": "segment"},
+                                                                        ],
+                                                                        value="node",
                                                                         inline=True,
                                                                     ),
                                                                 ], md=3),
@@ -478,13 +487,14 @@ app.layout = dbc.Container(
                                                                     dbc.RadioItems(
                                                                         id="filter-mode",
                                                                         options=[
-                                                                            {"label": "Include All", "value": "progress"},
-                                                                            {"label": "Only New", "value": "discoveries"},
+                                                                            {"label": "All", "value": "progress"},
+                                                                            {"label": "New", "value": "discoveries"},
                                                                         ],
                                                                         value="progress",
                                                                         inline=True,
                                                                     ),
-                                                                ], md=5),
+                                                                ], md=3),
+
                                                             ], className="gy-2"),
                                                         ]),
                                                         className="mb-4 shadow-sm",
@@ -896,25 +906,24 @@ def update_tables(filtered_data):
 
 @app.callback(
     Output("line-chart", "figure"),
-    Output("chart-mapping-store", "data"),
     Input("geojson-store-filtered", "data"),
     Input("agg-level", "value"),
     Input("plot-type", "value"),
+    Input("element-type", "value"),
     Input("filter-mode", "value"),
     State("year-slider", "value"),
-    State("chart-visibility-store", "data"),
 )
-def update_chart(filtered_data, agg_level, plot_type, filter_mode, date_range, visibility_state):
+def update_chart(filtered_data, agg_level, plot_type, element_type, filter_mode, date_range):
 
     if not filtered_data:
-        return build_empty_figure(MESSAGE_NO_DATA), {}
+        return build_empty_figure(MESSAGE_NO_DATA)
 
     # get dataframes
     agg_segs = gpd.GeoDataFrame.from_features(filtered_data["segments"]["features"])
     agg_nodes = gpd.GeoDataFrame.from_features(filtered_data["nodes"]["features"])
 
     if agg_segs.empty or agg_nodes.empty:
-        return build_empty_figure(MESSAGE_NO_FILTERED_DATA), {}
+        return build_empty_figure(MESSAGE_NO_FILTERED_DATA)
 
     # date conversions
     agg_segs["first_date"] = pd.to_datetime(agg_segs["first_date"])
@@ -946,45 +955,22 @@ def update_chart(filtered_data, agg_level, plot_type, filter_mode, date_range, v
         df_segs["count"] = df_segs["count"].cumsum()
         df_nodes["count"] = df_nodes["count"].cumsum()
 
-    # combine and plot
-    df_nodes["type"] = "Nodes"
-    df_segs["type"] = "Segments"
-    df_all = pd.concat([df_segs, df_nodes])
+    # assign type (for coloring) and choose dataframe
+    df_segs["type"] = "segment"
+    df_nodes["type"] = "node"
+
+    if element_type == "segment":
+        df = df_segs
+    else:
+        df = df_nodes
 
     # in case of 'discoveries' the resulting data frame may still be empty
-    if df_all.empty:
+    if df.empty:
         return build_empty_figure(MESSAGE_NO_FILTERED_DATA)
 
-    fig = build_coverage_figure(df_all, agg_level, plot_type, filter_mode)
+    fig = build_coverage_figure(df, agg_level, plot_type, filter_mode)
 
-    # apply saved visibility
-    for trace in fig.data:
-        if trace.name in visibility_state:
-            trace.visible = visibility_state[trace.name]
-
-    # store trace indices with their legend names so we can map restyleData indices back later
-    name_map = {i: trace.name for i, trace in enumerate(fig.data)}
-
-    return fig, name_map
-
-@app.callback(
-    Output("chart-visibility-store", "data"),
-    Input("line-chart", "restyleData"),
-    State("chart-visibility-store", "data"),
-    State("chart-mapping-store", "data"),
-)
-def update_chart_visibility(restyle_data, current, map_dict):
-    if not restyle_data or map_dict == {}:
-        return current
-
-    # Example restyleData: [{'visible': ['legendonly']}, [1]]
-    # Map the trace index from restyleData (e.g., [1]) back to its legend name using map_dict
-    update, trace_index = restyle_data # single-value lists
-    if "visible" in update:
-        # map_dict[str(trace_index[0])] gives us the trace name (e.g. "Nodes")
-        current[map_dict[str(trace_index[0])]] = update["visible"][0]
-    
-    return current
+    return fig
 
 @app.callback(
     Output("table-segments-agg", "selected_rows"),
