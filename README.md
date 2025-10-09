@@ -13,27 +13,63 @@ files from an old Garmin device collecting dust, etc.—see matched nodes and se
 
 ## Demo
 
-The app is deployed on [Render](https://gpx-bike-node-matcher.onrender.com) (heads-up: free-tier hosting makes ZIP processing a bit slow 🐢).
+A live demo of the app is available on [Render](https://gpx-bike-node-matcher.onrender.com).
 
-⚠️ **Note:** The hosted Render version currently includes **only the Belgian bike node network** due to memory limitations.  
-If you need coverage for the Netherlands or cross-border regions, please run the app locally instead.
+To try it out:
 
-For a smoother ride, it’s recommended to run it locally if the ZIP file contains hundreds of tracks.
+1. Upload a ZIP file containing your GPX rides.  
+2. Click **Process ZIP** to match them against the bike node network.  
+3. Explore the results in the dashboard and on the interactive map.  
+4. Download the processed outputs as a ZIP file when finished.
 
-## Features
+⚠️ **Note**
 
-- Upload and process your GPX rides in a ZIP file.
-- Visualize matched bike segments and nodes on an interactive map.
-- Aggregated statistics on matched nodes, segments, and segment length.
-- Download processed results as a ZIP file.
-- Optional display of the preloaded bike network.
-- Clustered nodes for cleaner visualization.
+The hosted version currently includes **only the Belgian bike node network** due to memory limits on the free Render tier. Performance may be slower for larger uploads 🐢.
+
+For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
+
+---
+
+## App Overview
+
+### Upload and process GPX files
+
+- Upload a ZIP file containing one or more GPX files (each GPX can include multiple tracks, *item 1 on the screenshot*)
+
+- Click **Process ZIP** to match your GPX tracks against the bike node network (*item 2 on the screenshot*).
+
+![Upload and Process ZIP](assets/images/01-process-zip.png)
+
+### Analyze the matching results
+
+- Explore aggregated statistics for matched **nodes, segments, tracks, and segment lengths** *(item 3 on the screenshot)*.
+- Visualize matched bike nodes and segments on an interactive map *(item 4 on the map)*. At lower zoom levels, nodes are clustered for a cleaner view.
+- Optionally switch the **basemap** or toggle **track** and **bike node network** layers *(item 5a on the screenshot)*.
+- Adjust map and data display using dashboard controls to reset the map view, filter results by period, or fine-tune node clustering (*item 5b on the screenshot*).
+- Focus on top-matched nodes or segments with quick zoom controls *(item 6 on the screenshot)*.
+
+![Analyze the matching results](assets/images/02-analyze-match.png)
+
+### Track network coverage over time & download results
+
+- View how matched nodes and segments accumulate over time on an interactive chart *(item 7 in the screenshot)*.
+- Download processed results as a ZIP file containing the output GeoJSON layers *(item 8 in the screenshot)*.
+
+![Analyze the network coverage](assets/images/03-analyze-coverage.png)
+
+### Inspect individual tracks
+
+- Zoom into individual tracks by activating the Track Focus option in the dashboard controls, and compare them with their matched nodes and segments on the map *(item 9 in the screenshot)*.
+
+![Inspect individual tracks](assets/images/04-analyze-tracks.png)
+
+---
 
 ## Data
 
-The underlying bike network data comes from [Geofabrik OSM extracts](https://download.geofabrik.de/europe/).  
-Dataset version is displayed in the app and stored in `data/processed/DATA_VERSION.txt`.  
+The underlying bike network data come from [Geofabrik OSM extracts](https://download.geofabrik.de/europe/).
 
+---
 
 ## Running Locally
 
@@ -62,45 +98,21 @@ Open http://127.0.0.1:8050 in your browser
 
 **Warning:** large GPX ZIPs can take a while. Patience is a virtue. ⏳
 
-## Usage
-
-- Upload a ZIP with GPX rides in the left panel.
-- Click **Process ZIP** to compute matched segments and nodes.
-- The map, KPIs and aggregated tables will update dynamically.
-- Download processed results via the **PDownload Results** button.
-- Filter by date and adjust cluster radius for node display.
-- Click **Recenter Map** if needed.
-
 ## Project Structure (Highlights)
 
-- `app/` – Dash app code
-- `data/processed/` – Preprocessed bike network data + DATA_VERSION.txt
-- `core/` – Helper functions and source file geoprocessing logic
+- `app/` - Dash app code
+- `data/processed/` - Preprocessed bike network data (GeoJSON + parquet)
+- `core/` - Helper functions and source file geoprocessing logic
+- `.github/workflows/` - GitHub Actions for  
+  - automating **Geofabrik data processing**  
+  - deploying the app to **Render**
+
+---
 
 ## Notes
 
-### Manual Update of Underlying Data
+### Data Updates
 
-The app normally relies on preprocessed data in `data/processed/`, which is updated through an automated GitHub workflow that creates a pull request. 
-However, if you want to update the data manually, **osmium** and **GDAL** need to be installed locally.
+The app relies on preprocessed data stored in `data/processed/`, which is automatically refreshed through a GitHub Actions workflow.  
 
-**Dependencies:**
-
-- **osmium-tool** (for OSM processing)  
-  - Linux: `sudo apt install osmium-tool`  
-  - Windows: install via Conda or OSGeo packages
-- **ogr2ogr** (GDAL)  
-  - Linux: `sudo apt install gdal-bin`  
-  - Windows: install QGIS or OSGeo4W and set the following environment variables:  
-    - **Path**: folder containing `ogr2ogr.exe`, e.g., `C:\Program Files\QGIS 3.28.6\bin`  
-    - **GDAL_DATA**: folder containing `osmconf.ini` (needed for `ogr2ogr.exe`), e.g., `C:\Program Files\QGIS 3.28.6\apps\gdal\share\gdal`
-
-**How to Update Data Locally:**
-
-- **Windows:**  
-    From the repository root, run:  
-    ```bash
-    python -m scripts.geofabrik_processing
-    ```
-- **Linux**:
-    A similar bash script scripts/geofabrik_processing.sh exists, but it is currently configured to work in combination with the GitHub workflow update_geofabrik.yml. Some modifications may be needed to run it fully standalone on a local Linux system.
+For details on how the underlying Geofabrik extracts are downloaded, processed, and how to update them manually (e.g., with **osmium** and **GDAL**), see the [Data Update Guide](https://github.com/roemeren/gpx-bike-node-matcher/wiki/Data-Update-Guide) in the project wiki.
