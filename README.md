@@ -5,9 +5,15 @@
 ![Last Commit](https://img.shields.io/github/last-commit/roemeren/gpx-bike-node-matcher)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-A Dash app to explore how your GPX rides align with the Belgian and Dutch bike node networks.  
-Upload a ZIP of your rides—these can be exports from Garmin Connect, Strava, 
-files from an old Garmin device collecting dust, etc.—see matched nodes and segments on a map, and download the results.
+<p align="center">
+  <img src="assets/images/repo-icon.png" width="250" alt="Project logo"><br>
+</p>
+
+A Dash app to explore how your GPX rides align with the Belgian and Dutch bike node networks.
+
+Upload a ZIP of your rides (these can be exports from Garmin Connect, Strava, 
+files from an old Garmin device collecting dust, etc.), see matched nodes and segments on 
+an interactive map, and download the results.
 
 ---
 
@@ -67,7 +73,7 @@ For full coverage (including the Netherlands and cross-border regions) or faster
 
 ## Data
 
-The underlying bike network data come from [Geofabrik OSM extracts](https://download.geofabrik.de/europe/).
+The underlying bike network data come from [Geofabrik OSM extracts](https://download.geofabrik.de/europe.html).
 
 ---
 
