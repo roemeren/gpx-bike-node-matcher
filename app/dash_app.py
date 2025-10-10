@@ -157,7 +157,11 @@ app.layout = dbc.Container(
                                 max=SLIDER_MAX_YEAR,
                                 step=1,
                                 id="year-slider",
-                                marks=None,
+                                marks={
+                                    year: str(year)
+                                    for year in range(SLIDER_MIN_YEAR, SLIDER_MAX_YEAR + 1)
+                                    if year % 5 == 0
+                                },
                                 tooltip={"placement": "bottom", "always_visible": True},
                                 value=[SLIDER_MIN_YEAR, SLIDER_MAX_YEAR],
                             ),
