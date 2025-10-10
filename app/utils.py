@@ -148,6 +148,9 @@ def build_coverage_figure(df, agg_level, plot_type, filter_mode):
         fig.update_xaxes(tickformat="%b %Y")
         fig.update_traces(hovertemplate="%{x|%b %Y}<br>%{y}")
 
+    # enable spike lines on Y-axis as well
+    fig.update_yaxes(showspikes=True)
+
     fig.update_layout(
         xaxis_title="Period",
         yaxis_title="Count",
