@@ -193,11 +193,17 @@ app.layout = dbc.Container(
                     # META INFO
                     # =======================
                     html.Div([
-                        f"Data version: {get_data_version()} (source: ",
-                        html.A("Geofabrik", href="https://download.geofabrik.de/europe/belgium.html#", target="_blank"),
-                        ")"
-                    ], style={"fontSize": "12px", "color": "#666", "marginTop": "10px"}),
-                    html.Div(f"App version: {get_app_version()}", style={"fontSize": "12px", "color": "#666"}),
+                        html.Div([
+                            f"Data version: {get_data_version()} (source: ",
+                            html.A("Geofabrik", href="https://download.geofabrik.de/europe/belgium.html#", target="_blank"),
+                            ")",
+                        ]),
+                        html.Div(f"App version: {get_app_version()}"),
+                        html.Div([
+                            "Project page: ",
+                            html.A("GitHub", href="https://github.com/roemeren/gpx-bike-node-matcher", target="_blank"),
+                        ]),
+                    ], style={"fontSize": "12px", "color": "#666", "marginTop": "10px", "lineHeight": "1.4"}),
 
                     # =======================
                     # HIDDEN ELEMENTS
