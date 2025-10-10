@@ -31,7 +31,7 @@ def get_app_version():
         return VERSION_FILE.read_text().strip()
     return "unknown"
 
-def make_gpx_tooltip(feature):
+def make_track_tooltip(feature):
     """Return styled HTML string for a GPX feature tooltip."""
     row = feature["properties"]
 

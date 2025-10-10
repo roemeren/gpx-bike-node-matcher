@@ -1,7 +1,7 @@
 window.dashExtensions = Object.assign({}, window.dashExtensions, {
     default: {
         // --- custom icon with full HTML/CSS customization (not possible in Python) ---
-        pointToLayer: function(feature, latlng) {
+        nodePointToLayer: function(feature, latlng) {
             const label = feature.properties.rcn_ref || "";
             const icon = L.divIcon({
                 className: "custom-label-icon",
@@ -28,8 +28,8 @@ window.dashExtensions = Object.assign({}, window.dashExtensions, {
             });
         },
 
-        // --- helper: compute base segment style ---
-        computeSegmentStyle: function(feature, context) {
+        // --- style function for segments ---
+        segmentStyle: function(feature, context) {
             const { weight_classes, weights, color } = context.hideout;
             const value = feature.properties.count_track || 0;
 
@@ -43,18 +43,11 @@ window.dashExtensions = Object.assign({}, window.dashExtensions, {
             return {color: color, weight: w};
         },
 
-        // --- style function for segments from base style ---
-        segmentStyle: function(feature, context) {
-            // if needed elements of the base style can be overridden
-            return window.dashExtensions.default.computeSegmentStyle(feature, context);
-        },
-
         // --- selected style (persistent highlight) ---
-        gpxStyle: function(feature, context) {
-            console.log("I'm being executed!")
+        trackStyle: function(feature, context) {
             const hideout = context && context.hideout ? context.hideout : {};
             const baseColor = hideout.base_color;
-            const selectedColor = hideout.selected_color;
+            // const selectedColor = hideout.selected_color;
             const trackFocus = hideout.track_focus;
             
             // set base style for all features
@@ -78,13 +71,13 @@ window.dashExtensions = Object.assign({}, window.dashExtensions, {
         },
 
         // --- hover style overrides current style ---
-        gpxHoverStyle: function(feature, _) {
+        trackHoverStyle: function(feature, _) {
             // override the feature's current styling with a custom weight
             return { ...feature.options, weight: 8 };
         },
 
         // attach tooltips to each GeoJSON feature using precomputed HTML ---
-        gpxBindTooltip: function(feature, layer, context) {
+        trackBindTooltip: function(feature, layer, context) {
             // get unique track id from feature properties
             const fid = feature.properties.track_uid;
             if (fid && context.hideout.tooltips[fid]) {

@@ -11,6 +11,7 @@ import dash_bootstrap_components as dbc
 import dash_leaflet as dl
 from dash.exceptions import PreventUpdate
 from dash import callback_context as ctx
+import time
 
 # --- initialize static folder ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
@@ -291,9 +292,9 @@ app.layout = dbc.Container(
                                             ),
                                             dl.Overlay(
                                                 dl.GeoJSON(
-                                                    id='layer-gpx', 
-                                                    style=ns("gpxStyle"),
-                                                    options=dict(onEachFeature=ns("gpxBindTooltip")),
+                                                    id='layer-track', 
+                                                    style=ns("trackStyle"),
+                                                    options=dict(onEachFeature=ns("trackBindTooltip")),
                                                     # initialize hideout
                                                     hideout=dict(
                                                         selected_id=None,
@@ -321,7 +322,7 @@ app.layout = dbc.Container(
                                         id="layer-nodes",
                                         cluster=True,
                                         zoomToBoundsOnClick=True,
-                                        pointToLayer=ns("pointToLayer"),
+                                        pointToLayer=ns("nodePointToLayer"),
                                     ),
                                     # Highlighted segments
                                     dl.LayerGroup(id="layer-selected-segments"),
@@ -568,13 +569,22 @@ def start_processing(_, filename, upload_ready):
     zip_file_path = os.path.join(UPLOAD_FOLDER, filename)
 
     def worker():
-        progress_state["running"] = True
-        all_segments, all_nodes, all_gpx = process_gpx_zip(zip_file_path, bike_network_seg, bike_network_node)
+        progress_state["status"] = "running"
+        all_segments, all_nodes, all_gpx, message = \
+            process_gpx_zip(zip_file_path, bike_network_seg, bike_network_node)
+
+        # Early exit if any DataFrame is empty (indicating an issue)
+        if any(df.empty for df in [all_segments, all_nodes, all_gpx]):
+            progress_state["current-task"] = f"Processing failed for {filename}: {message}"
+            progress_state["pct"] = 100
+            progress_state["btn-disabled"] = False
+            progress_state["status"] = "exited"
+            return
 
         # Reproject all GeoDataFrames to WGS84 (EPSG:4326) for export and mapping
-        all_segments = all_segments.to_crs(epsg=4326) if not all_segments.empty else gpd.GeoDataFrame()
-        all_nodes = all_nodes.to_crs(epsg=4326) if not all_nodes.empty else gpd.GeoDataFrame()
-        all_gpx = all_gpx.to_crs(epsg=4326) if not all_gpx.empty else gpd.GeoDataFrame()
+        all_segments = all_segments.to_crs(epsg=4326)
+        all_nodes = all_nodes.to_crs(epsg=4326)
+        all_gpx = all_gpx.to_crs(epsg=4326)
 
         segments_file_path = os.path.join(STATIC_FOLDER, "all_matched_segments_wgs84.geojson")
         nodes_file_path = os.path.join(STATIC_FOLDER, "all_matched_nodes_wgs84.geojson")
@@ -596,8 +606,9 @@ def start_processing(_, filename, upload_ready):
         progress_state["pct"] = 100
         progress_state["btn-disabled"] = False
         progress_state["current-task"] = f"Finished processing {filename}"
-        # disable polling
-        progress_state["running"] = False
+        # store timestamp for deactivation of polling
+        progress_state["status"] = "finished"
+        progress_state["finished_at"] = time.time()   
 
     # assign to the module-level variable, not a new local variable
     global _processing_thread
@@ -623,32 +634,53 @@ def start_processing(_, filename, upload_ready):
     prevent_initial_call=True
 )
 def update_progress(*_):
-    # reset or increment dots
+    # Animate dots
     current_task = progress_state.get("current-task", "")
-    prev_task = progress_state.get("previous-task", None)
-    if current_task != prev_task:
-        progress_state["dot-count"] = 0
-    else:
-        progress_state["dot-count"] = (progress_state["dot-count"] + 1) % 4
+    prev_task = progress_state.get("previous-task")
+    progress_state["dot-count"] = 0 if current_task != prev_task else (progress_state.get("dot-count", 0) + 1) % 4
     progress_state["previous-task"] = current_task
     dots = "." * progress_state["dot-count"] if progress_state.get("show-dots") else ""
+    current_task += dots
 
-    current_task = progress_state.get("current-task", "") + dots
-    btn_disabled = progress_state.get("btn-disabled", False)
-    # disable poller once the background processing thread reports finished
-    poller_disabled = not progress_state.get("running", True)
+    # Base UI state
     pct = progress_state.get("pct", 0)
     label = f"{pct}%" if pct >= 5 else ""
+    btn_disabled = progress_state.get("btn-disabled", False)
     href = progress_state.get("store_data", {}).get("download_href")
     style = {"width": "40%", "display": "block" if pct >= 100 else "none"}
 
+    finished_at = progress_state.get("finished_at")
+    status = progress_state.get("status")
+    poller_disabled = False
+
+    # Handle completion
+    if status == "exited":
+        # Early exit → reset immediately
+        pct = 0
+        label = ""
+        poller_disabled = True
+    elif finished_at and time.time() - finished_at >= 3:
+        # Normal completion → wait 3s before reset
+        pct = 0
+        label = ""
+        poller_disabled = True
+        progress_state.pop("finished_at", None)
+    
     # Only update store when ready
     store_data = progress_state.get("store_data") if pct >= 100 else no_update
 
-    outputs = (pct, label, poller_disabled, current_task,
-           btn_disabled, btn_disabled, href, style, store_data, btn_disabled)
-
-    return outputs
+    return (
+        pct,
+        label,
+        poller_disabled,
+        current_task,
+        btn_disabled,
+        btn_disabled,
+        href,
+        style,
+        store_data,
+        btn_disabled,
+    )
 
 @app.callback(
     Output("kpi-totsegments", "children"),
@@ -801,7 +833,7 @@ def filter_data(store, date_range):
 
 @app.callback(
     Output("layer-segments", "data"),
-    Output("layer-gpx", "data"),
+    Output("layer-track", "data"),
     Input("geojson-store-filtered", "data"),
 )
 def update_line_layers(filtered_data):
@@ -815,7 +847,7 @@ def update_line_layers(filtered_data):
     # add tooltips per unique track
     global _tooltips_html
     _tooltips_html = {
-        feature["properties"]["track_uid"]: make_gpx_tooltip(feature)
+        feature["properties"]["track_uid"]: make_track_tooltip(feature)
         for feature in res_gpx["features"]
     }
 
@@ -1086,10 +1118,10 @@ def highlight_segments_from_nodes(selected_rows, table_data, filtered_data):
     )
 
 @app.callback(
-    Output("layer-gpx", "hoverStyle"),
-    Output("layer-gpx", "zoomToBoundsOnClick"),
+    Output("layer-track", "hoverStyle"),
+    Output("layer-track", "zoomToBoundsOnClick"),
     Input("checkbox-show-hover", "value"),
-    Input("layer-gpx", "data"),
+    Input("layer-track", "data"),
 )
 def toggle_track_focus(hover_enabled, gpx_geojson):
     """Toggle GPX track hover style and zoom behavior"""
@@ -1099,14 +1131,14 @@ def toggle_track_focus(hover_enabled, gpx_geojson):
     
     if "hover" in hover_enabled: 
         # activate hoverstyle function
-        hover = ns("gpxHoverStyle")
+        hover = ns("trackHoverStyle")
         return hover, True
     
     return None, False
 
 @app.callback(
     Output("selected-track", "data"),
-    Input("layer-gpx", "clickData"),
+    Input("layer-track", "clickData"),
     Input("map", "clickData"),
     Input("checkbox-show-hover", "value")
 )
@@ -1128,7 +1160,7 @@ def update_selected_track(layer_click, map_click, checkbox):
 
     if any("layer" in item for item in triggers):
         # a new feature has been clicked on the map
-        # (triggers: ['layer-gpx.clickData', 'map.clickData'])
+        # (triggers: ['layer-track.clickData', 'map.clickData'])
         return selected_id
     elif any("map" in item for item in triggers):
         # user either clicked on the same feature or outside the layer
@@ -1144,12 +1176,12 @@ def update_selected_track(layer_click, map_click, checkbox):
     return None
 
 @app.callback(
-    Output("layer-gpx", "hideout"),
+    Output("layer-track", "hideout"),
     Input("selected-track", "data"),
     Input("checkbox-show-hover", "value"),
     Input("layers-control", "baseLayer"),
-    State("layer-gpx", "hideout"),
-    Input("layer-gpx", "data"),
+    State("layer-track", "hideout"),
+    Input("layer-track", "data"),
 )
 def update_gpx_layer_hideout(selected_id, checkbox_value, base_layer, current_hideout, _):
     """Update the GPX layer's hideout dict to control attributes based on current state."""
