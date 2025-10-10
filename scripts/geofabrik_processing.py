@@ -141,7 +141,7 @@ def enrich_with_osm_ids(
     gdf_multiline['osm_id_to'] = osm_to_list
 
     # --- Step 2: add match flag ---
-    def _match_flag(row):
+    def match_flag(row):
         if pd.notna(row['osm_id_from']) and pd.notna(row['osm_id_to']):
             return 'full'
         elif pd.isna(row['osm_id_from']) and pd.isna(row['osm_id_to']):
@@ -149,7 +149,7 @@ def enrich_with_osm_ids(
         else:
             return 'partial'
 
-    gdf_multiline['osm_match_flag'] = gdf_multiline.apply(_match_flag, axis=1)
+    gdf_multiline['osm_match_flag'] = gdf_multiline.apply(match_flag, axis=1)
 
     # --- Step 3: summary and printout ---
     missing = gdf_multiline[gdf_multiline['osm_match_flag'] != 'full']
@@ -287,7 +287,7 @@ def process_osm_data():
     # Deduplicate lines and points near border regions
     n_multi, n_point = len(gdf_multiline), len(gdf_point)
 
-    def _priority(val: str) -> int:
+    def priority(val: str) -> int:
         """
         Assign numeric priority based on main country and regional context.
 
@@ -303,7 +303,7 @@ def process_osm_data():
 
     gdf_multiline = (
         gdf_multiline
-        .assign(__priority=lambda df: df["source_layer"].apply(_priority))
+        .assign(__priority=lambda df: df["source_layer"].apply(priority))
         .sort_values(["osm_id", "__priority"])
         .dissolve(by="osm_id", aggfunc="first")
         .reset_index(drop=False)
@@ -312,7 +312,7 @@ def process_osm_data():
 
     gdf_point = (
         gdf_point
-        .assign(__priority=lambda df: df["source_layer"].apply(_priority))
+        .assign(__priority=lambda df: df["source_layer"].apply(priority))
         .sort_values(["osm_id", "__priority"])
         .drop_duplicates(subset="osm_id", keep="first")
         .reset_index(drop=True)
