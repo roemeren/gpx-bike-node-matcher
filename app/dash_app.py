@@ -54,14 +54,26 @@ print(f"Memory usage after initializing application: {process.memory_info().rss 
 app.layout = dbc.Container(
     [
         html.Div([
-            html.H1(
-                app_header,
-                className="text-center my-2 display-4"
-            ),
-            html.P(
-                app_descr,
-                className="text-center text-muted mb-4"
-            )
+            dbc.Row([
+                dbc.Col([
+                    html.Div([
+                        html.Img(
+                            src="assets/repo-icon.png",
+                            height="110px",
+                            style={"marginRight": "15px"}
+                        ),
+                        html.Div([
+                            html.H1(app_header, className="my-2 display-4 mb-0"),
+                            html.P(app_descr, className="text-muted mb-4"),
+                        ], style={"textAlign": "center"}
+                        ),
+                    ], style={
+                        "display": "flex",
+                        "alignItems": "center",
+                        "justifyContent": "center"
+                    }),
+                ])
+            ], className="align-items-center justify-content-center g-0")
         ]),
 
         dbc.Row([

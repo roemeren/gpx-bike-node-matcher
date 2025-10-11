@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 <p align="center">
-  <img src="assets/images/repo-icon.png" width="250" alt="Project logo"><br>
+  <img src="app/assets/repo-icon.png" width="200" alt="Project logo"><br>
 </p>
 
 A Dash app to explore how your GPX rides align with the Belgian and Dutch bike node networks.
