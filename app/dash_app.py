@@ -73,7 +73,15 @@ app.layout = dbc.Container(
                         "justifyContent": "center"
                     }),
                 ])
-            ], className="align-items-center justify-content-center g-0")
+            ], 
+            className="align-items-center justify-content-center g-0",
+            style={
+                "backgroundColor": "#E6F7FF",
+                "padding": "5px 0",        # top/bottom padding
+                "marginBottom": "20px",     # spacing below header
+                "borderRadius": "8px"
+            },
+            ),
         ]),
 
         dbc.Row([
