@@ -27,4 +27,4 @@ def get_latest_geofabrik_date(country: str="belgium") -> str:
     return latest_date
 
 if __name__ == "__main__":
-    get_latest_geofabrik_date()
+    print(get_latest_geofabrik_date())
