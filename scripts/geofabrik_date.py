@@ -27,4 +27,5 @@ def get_latest_geofabrik_date(country: str="belgium") -> str:
     return latest_date
 
 if __name__ == "__main__":
-    get_latest_geofabrik_date()
+    # print() needed so GitHub Actions captures the output
+    print(get_latest_geofabrik_date())
