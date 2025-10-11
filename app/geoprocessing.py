@@ -181,7 +181,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     gpx_buffers = all_gpx_gdf.set_geometry("buffer_geom")
 
     # --- spatial join: find all segments that intersect each GPX track buffer ---
-    progress_state["current-task"] = "Matching all GPX tracks with the bike node network"
+    progress_state["current-task"] = "Matching GPX tracks with bike node network"
     progress_state["pct"] = 65
     joined = gpd.sjoin(
         bike_network,
