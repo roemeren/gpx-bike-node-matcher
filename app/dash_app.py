@@ -286,7 +286,7 @@ app.layout = dbc.Container(
                             dl.Map(
                                 center=INITIAL_CENTER, 
                                 zoom=INITIAL_ZOOM,
-                                style={"width": "100%", "height": "625px"},
+                                style={"width": "100%", "height": "600px"},
                                 children=[
                                     # https://www.dash-leaflet.com/components/controls/layers_control (v1.1.2)
                                     dl.LayersControl(
