@@ -88,24 +88,66 @@ app.layout = dbc.Container(
             dbc.Col(
                 [
                     # =======================
-                    # PROCESSING SECTION
+                    # FILE SELECTION SECTION
                     # =======================
-                    html.H5("File Processing", className="mb-3", style={"fontWeight": "600"}),
+                    html.H5("Select GPX Data", className="mb-3", style={"fontWeight": "600"}),
 
-                    dcc.Upload(
-                        id="upload-zip",
-                        children=html.Div(["Drag & Drop or ", html.A("Browse for ZIP")]),
-                        accept=".zip",
-                        multiple=False,
-                        style={
-                            "width": "100%", "height": "60px", "lineHeight": "60px",
-                            "borderWidth": "1px", "borderStyle": "dashed",
-                            "borderRadius": "5px", "textAlign": "center",
-                            "margin-bottom": "10px"
-                        },
-                    ),
-                    html.Div(id="browse-info", className="mb-2"),
-
+                    dcc.Tabs(
+                        id="file-tabs",
+                        value="tab-sample",  # default tab
+                        children=[
+                            dcc.Tab(
+                                label="Use Sample Dataset",
+                                value="tab-sample",
+                                children=[
+                                    html.Div(
+                                        [
+                                            dbc.Label("Select a sample ZIP file"),
+                                            dcc.Dropdown(
+                                                id="sample-file-dropdown",
+                                                options=[
+                                                    {"label": f.name, "value": str(f)}
+                                                    for f in Path("data/sample").glob("*.zip")
+                                                ],
+                                                placeholder="Choose sample dataset...",
+                                                style={"width": "100%", "marginBottom": "10px"},
+                                            ),
+                                            html.Div(
+                                                id="sample-info",
+                                                style={"fontSize": "13px", "color": "#666", "marginBottom": "10px"},
+                                            ),
+                                        ],
+                                        className="p-2",
+                                    ),
+                                ],
+                            ),
+                            dcc.Tab(
+                                label="Upload Your Own ZIP",
+                                value="tab-upload",
+                                children=[
+                                    html.Div(
+                                        [
+                                            dcc.Upload(
+                                                id="upload-zip",
+                                                children=html.Div(["Drag & Drop or ", html.A("Browse for ZIP")]),
+                                                accept=".zip",
+                                                multiple=False,
+                                                style={
+                                                    "width": "100%", "height": "60px", "lineHeight": "60px",
+                                                    "borderWidth": "1px", "borderStyle": "dashed",
+                                                    "borderRadius": "5px", "textAlign": "center",
+                                                    "marginBottom": "10px",
+                                                },
+                                            ),
+                                            html.Div(id="browse-info", className="mb-2"),
+                                        ],
+                                        className="p-2",
+                                    ),
+                                ],
+                            ),
+                        ],
+                        style={"marginBottom": "15px"},
+                    ),                   
                     dbc.Button(
                         "Process ZIP", 
                         id="btn-process", 
@@ -557,25 +599,41 @@ app.layout = dbc.Container(
 # ---------- Callbacks ----------
 @app.callback(
     Output("upload-ready", "data"),
+    Output("upload-zip", "filename"),
+    Output("sample-info", "children"),
+    Input("file-tabs", "value"),
     Input("upload-zip", "contents"),
     State("upload-zip", "filename"),
+    Input("sample-file-dropdown", "value"),
+    prevent_initial_call=True
 )
-def save_uploaded_file(contents, filename):
-    if not contents or not filename:
-        # no file available yet
-        return False
-
+def handle_file_selection(active_tab, upload_contents, upload_filename, sample_path):
+    """
+    Handles both sample file selection and user uploads, depending on the active tab.
+    Saves the ZIP into UPLOAD_FOLDER and returns filename + readiness flag.
+    """
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-    # decode base64 and save to disk
-    _, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
-    saved_path = os.path.join(UPLOAD_FOLDER, filename)
-    with open(saved_path, "wb") as f:
-        f.write(decoded)
+    # Sample tab selected
+    if active_tab == "tab-sample" and sample_path:
+        dest_path = os.path.join(UPLOAD_FOLDER, os.path.basename(sample_path))
+        shutil.copy(sample_path, dest_path)
+        info = f"Selected sample: {Path(sample_path).name}"
+        print(f"Using sample file: {sample_path}")
+        return True, os.path.basename(sample_path), info
 
-    # signal that the file was fully saved
-    return True
+    # Upload tab selected
+    elif active_tab == "tab-upload" and upload_contents and upload_filename:
+        _, content_string = upload_contents.split(",")
+        decoded = base64.b64decode(content_string)
+        saved_path = os.path.join(UPLOAD_FOLDER, upload_filename)
+        with open(saved_path, "wb") as f:
+            f.write(decoded)
+        print(f"Uploaded file saved: {upload_filename}")
+        return True, upload_filename, no_update
+
+    # No valid selection or upload yet
+    raise PreventUpdate
 
 @app.callback(
     Output("processing-started", "data"),

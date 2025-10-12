@@ -11,20 +11,32 @@ import gpxpy.gpx
 # =============================================================================
 # Configuration
 # =============================================================================
-# ⚠️ Replace with your own key from https://openrouteservice.org/dev/#/signup
+# Replace with your own key from https://openrouteservice.org/dev/#/signup
 ORS_API_KEY = "YOUR_ORS_API_KEY"
 PROFILE = "cycling-regular"
 USE_FIXED_SEED = True
 FIXED_SEED = 42
-N_RIDES = 50
+N_RIDES = 60
 DIST_RANGE_KM = (25, 100)
 OUTPUT_DIR = Path("data/sample")
-ZIP_NAME = "sample_rides_ors.zip"
+
 
 # Triangle roughly covering Belgium
 A = (2.500598113784781, 51.38374433155327)  # (lon, lat)
 B = (6.287612556287783, 51.522101934243)
 C = (6.304094137687353, 49.34180026957003)
+
+# "Home" bias parameters
+HOME_LOCATIONS = {
+    "Mechelen": (4.4777, 50.9861),
+    "Kortrijk": (3.2640, 50.8279),
+    "Liège": (5.5797, 50.6326),
+}
+HOME = "Mechelen"
+HOME_LOCATION = HOME_LOCATIONS[HOME]
+HOME_RADIUS_KM = 15                # Local rides radius around home
+HOME_PROB = 0.7                    # Probability of starting near home
+ZIP_NAME = f"sample_rides_ors_{HOME}.zip"
 
 # =============================================================================
 # Helpers
@@ -79,15 +91,36 @@ def random_point_nearby(start, distance_km, bearing_deg):
                              math.cos(d) - math.sin(lat1) * math.sin(lat2))
     return (math.degrees(lon2), math.degrees(lat2))
 
+def random_point_near_home():
+    """Generate a random point within HOME_RADIUS_KM of HOME_LOCATION."""
+    distance = random.uniform(0, HOME_RADIUS_KM)
+    bearing = random.uniform(0, 360)
+    return random_point_nearby(HOME_LOCATION, distance, bearing)
 
-def random_route_within_range():
-    """Return a start and end point within a random distance range."""
-    start = random_point_be()
+
+def random_route_with_home_bias():
+    """
+    Return a start and end point, where a portion of rides start near home.
+    The rest use fully random points across Belgium.
+    """
+    if random.random() < HOME_PROB:
+        start = random_point_near_home()
+    else:
+        start = random_point_be()
+
     distance = random.uniform(*DIST_RANGE_KM)
     bearing = random.uniform(0, 360)
     end = random_point_nearby(start, distance, bearing)
     return start, end
 
+# Legacy version (no home bias)
+# def random_route_within_range():
+#     """Return a start and end point within a random distance range."""
+#     start = random_point_be()
+#     distance = random.uniform(*DIST_RANGE_KM)
+#     bearing = random.uniform(0, 360)
+#     end = random_point_nearby(start, distance, bearing)
+#     return start, end
 
 def route_ors(start, end, retries=3, delay=1.0):
     """Fetch ORS route (cycling-regular) between two lon/lat points."""
@@ -153,7 +186,7 @@ def main():
     success_count = 0
 
     for i in range(1, N_RIDES + 1):
-        start, end = random_route_within_range()
+        start, end = random_route_with_home_bias()
         time.sleep(1.0)  # ✅ polite delay between API calls to avoid 429s
 
         try:
@@ -188,8 +221,8 @@ def main():
     # Folder README
     readme = f"""# Sample GPX Data (ORS)
 
-Generated {success_count} synthetic bike rides (out of max. {N_RIDES})
-using OpenRouteService '{PROFILE}' profile.
+Generated synthetic bike rides using OpenRouteService 
+'{PROFILE}' profile.
 All tracks include artificial timestamps (≈20 km/h avg speed).
 
 Random seed used: {seed_used}
