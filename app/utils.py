@@ -137,25 +137,37 @@ def build_coverage_figure(df, agg_level, plot_type, filter_mode):
         showlegend=False,
     )
 
-    if agg_level == "Y":
-        # Format tick labels as just the year
-        fig.update_xaxes(tickformat="%Y", dtick="M24")
-
-        # Update hover label to show only the year as well
-        fig.update_traces(hovertemplate="%{x|%Y}<br>%{y}")
+    # --- Tooltip sentence logic ---
+    if plot_type == "cumulative":
+        intro = "Up to"
+        verb = "had covered"
     else:
-        # Default monthly formatting
-        fig.update_xaxes(tickformat="%b %Y")
-        fig.update_traces(hovertemplate="%{x|%b %Y}<br>%{y}")
+        intro = "In"
+        verb = "newly covered"
+    suffix = "" if filter_mode == "progress" else "for the very first time"
 
-    # enable spike lines on Y-axis as well
+    # --- Axis formatting & hovertemplate ---
+    hover_date = "%{x|%Y}" if agg_level == "Y" else "%{x|%b %Y}"
+
+    # Custom hover template (single natural sentence)
+    fig.update_traces(
+        hovertemplate=(
+            f"{intro} <b>{hover_date}</b>, you {verb} "
+            f"<b>%{{y:,}}</b> "
+            f"%{{fullData.name}}s {suffix}."
+            "<extra></extra>"
+        )
+    )
+
+    # enable spike lines on both axes
+    fig.update_xaxes(showspikes=True)
     fig.update_yaxes(showspikes=True)
 
     fig.update_layout(
         xaxis_title="Period",
         yaxis_title="Count",
         showlegend=False,
-        hovermode="x unified",
+        hoverlabel=dict(font_size=18, bgcolor="white"),
         template="plotly_white",
         margin=dict(l=40, r=20, t=60, b=40),
     )
