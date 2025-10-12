@@ -77,7 +77,7 @@ app.layout = dbc.Container(
             className="align-items-center justify-content-center g-0",
             style={
                 "backgroundColor": "#E6F7FF",
-                "marginBottom": "20px",     # spacing below header
+                "marginBottom": "10px",     # spacing below header
                 "borderRadius": "8px"
             },
             ),
@@ -239,7 +239,9 @@ app.layout = dbc.Container(
                     dcc.Store(id="geojson-store-filtered", data={}),
                 ],
                 # panel width out of 12
-                width=3
+                width=3,
+                className="p-3 rounded",
+                style={"backgroundColor": "#f0f0f0"},
             ),
             # Right panel
             dbc.Col(
@@ -527,7 +529,7 @@ app.layout = dbc.Container(
 
                                                             ], className="gy-2"),
                                                         ]),
-                                                        className="mb-4 shadow-sm",
+                                                        className="mb-2 shadow-sm",
                                                     ),
                                                     dcc.Graph(
                                                         id="line-chart", 
@@ -679,7 +681,8 @@ def update_progress(*_):
     # Animate dots
     current_task = progress_state.get("current-task", "")
     prev_task = progress_state.get("previous-task")
-    progress_state["dot-count"] = 0 if current_task != prev_task else (progress_state.get("dot-count", 0) + 1) % 4
+    progress_state["dot-count"] = 0 if current_task != prev_task \
+        else (progress_state.get("dot-count", 0) + 1) % 4
     progress_state["previous-task"] = current_task
     dots = "." * progress_state["dot-count"] if progress_state.get("show-dots") else ""
     current_task += dots
