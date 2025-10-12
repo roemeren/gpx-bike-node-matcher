@@ -1,7 +1,9 @@
-# Ignore all data except contents of data/processed
+# Ignore all data except contents of data/processed and data/sample
 data/*
 !data/processed/
 !data/processed/**
+!data/sample/
+!data/sample/**
 
 # Ignore static files from the app
 app/static/
