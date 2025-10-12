@@ -624,14 +624,24 @@ def start_processing(_, filename, upload_ready):
 
         zip_name = create_result_zip(segments_file_path, nodes_file_path, gpx_file_path)
 
-        # Only update store when processing is done
+        # Calculate range for year range slider
+        track_date_years = {
+            "min": pd.to_datetime(all_gpx["track_date"], 
+                                  errors="coerce").dt.year.min(),
+            "max": pd.to_datetime(all_gpx["track_date"], 
+                                  errors="coerce").dt.year.max(),
+        }
+
+        # Store all processed data for the frontend
         progress_state["store_data"] = {
             "segments": all_segments.__geo_interface__,
             "nodes": all_nodes.__geo_interface__,
             "gpx": all_gpx.__geo_interface__,
             # must be relative to app root here for Dash download link
-            "download_href": os.path.join("static", zip_name)
+            "download_href": os.path.join("static", zip_name),
+            "track_date_years": track_date_years,
         }
+
         progress_state["pct"] = 100
         progress_state["btn-disabled"] = False
         progress_state["current-task"] = f"Finished processing {filename}"
@@ -658,6 +668,9 @@ def start_processing(_, filename, upload_ready):
     Output("btn-download", "style"),
     Output("geojson-store-full", "data"),
     Output("upload-zip", "disabled"),
+    Output("year-slider", "min"),
+    Output("year-slider", "max"),
+    Output("year-slider", "value"),
     Input("progress-poller", "n_intervals"), # initially None
     Input("processing-started", "data"), # will (re)activate the poller
     prevent_initial_call=True
@@ -681,6 +694,7 @@ def update_progress(*_):
     finished_at = progress_state.get("finished_at")
     status = progress_state.get("status")
     poller_disabled = False
+    store_data, min_year, max_year, slider_val = (no_update,) * 4
 
     # Handle completion
     if status == "exited":
@@ -688,15 +702,19 @@ def update_progress(*_):
         pct = 0
         label = ""
         poller_disabled = True
-    elif finished_at and time.time() - finished_at >= 3:
-        # Normal completion → wait 3s before reset
-        pct = 0
-        label = ""
-        poller_disabled = True
-        progress_state.pop("finished_at", None)
-    
-    # Only update store when ready
-    store_data = progress_state.get("store_data") if pct >= 100 else no_update
+    elif finished_at:
+        # Normal completion
+        store_data = progress_state.get("store_data")
+        min_year = store_data["track_date_years"]["min"]
+        max_year = store_data["track_date_years"]["max"]
+        slider_val = [min_year, max_year]
+        # Wait 3s before progress bar reset
+        if time.time() - finished_at >= 3:
+            
+            pct = 0
+            label = ""
+            poller_disabled = True
+            progress_state.pop("finished_at", None)
 
     return (
         pct,
@@ -709,6 +727,9 @@ def update_progress(*_):
         style,
         store_data,
         btn_disabled,
+        min_year,
+        max_year,
+        slider_val
     )
 
 @app.callback(
