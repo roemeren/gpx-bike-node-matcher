@@ -20,7 +20,6 @@ N_RIDES = 60
 DIST_RANGE_KM = (25, 100)
 OUTPUT_DIR = Path("data/sample")
 
-
 # Triangle roughly covering Belgium
 A = (2.500598113784781, 51.38374433155327)  # (lon, lat)
 B = (6.287612556287783, 51.522101934243)
@@ -63,7 +62,6 @@ def haversine(lat1, lon1, lat2, lon2):
          math.sin(dlon / 2) ** 2)
     return 2 * R * math.asin(math.sqrt(a))
 
-
 def random_point_be():
     """
     Generate a random point within the triangle ABC (approx Belgium).
@@ -75,7 +73,6 @@ def random_point_be():
     lon = A[0] + r1 * (B[0] - A[0]) + r2 * (C[0] - A[0])
     lat = A[1] + r1 * (B[1] - A[1]) + r2 * (C[1] - A[1])
     return (lon, lat)
-
 
 def random_point_nearby(start, distance_km, bearing_deg):
     """Return (lon, lat) at distance_km and bearing_deg from start."""
@@ -96,7 +93,6 @@ def random_point_near_home():
     distance = random.uniform(0, HOME_RADIUS_KM)
     bearing = random.uniform(0, 360)
     return random_point_nearby(HOME_LOCATION, distance, bearing)
-
 
 def random_route_with_home_bias():
     """
@@ -144,7 +140,6 @@ def route_ors(start, end, retries=3, delay=1.0):
             else:
                 raise
 
-
 def save_coords_to_gpx(coords, filename, track_name="ORS Route", avg_speed_kmh=20):
     """Save coords to GPX with artificial timestamps (≈ avg_speed_kmh)."""
     gpx = gpxpy.gpx.GPX()
@@ -174,7 +169,6 @@ def save_coords_to_gpx(coords, filename, track_name="ORS Route", avg_speed_kmh=2
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(gpx.to_xml())
-
 
 # =============================================================================
 # Main
@@ -230,7 +224,6 @@ Distance range: {DIST_RANGE_KM[0]}–{DIST_RANGE_KM[1]} km
 """
     with open(OUTPUT_DIR / "README.md", "w", encoding="utf-8") as f:
         f.write(readme)
-
 
 if __name__ == "__main__":
     main()
