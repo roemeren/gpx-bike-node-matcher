@@ -92,13 +92,13 @@ app.layout = dbc.Container(
                     # =======================
                     html.H5("Select GPX Data", className="mb-3", style={"fontWeight": "600"}),
 
-                    dcc.Tabs(
+                    dbc.Tabs(
                         id="file-tabs",
-                        value="tab-sample",  # default tab
+                        active_tab="tab-sample",  # default tab
                         children=[
-                            dcc.Tab(
+                            dbc.Tab(
                                 label="Use Sample Dataset",
-                                value="tab-sample",
+                                tab_id="tab-sample",
                                 children=[
                                     html.Div(
                                         [
@@ -121,9 +121,9 @@ app.layout = dbc.Container(
                                     ),
                                 ],
                             ),
-                            dcc.Tab(
+                            dbc.Tab(
                                 label="Upload Your Own ZIP",
-                                value="tab-upload",
+                                tab_id="tab-upload",
                                 children=[
                                     html.Div(
                                         [
@@ -147,7 +147,8 @@ app.layout = dbc.Container(
                             ),
                         ],
                         style={"marginBottom": "15px"},
-                    ),                   
+                    ),
+
                     dbc.Button(
                         "Process ZIP", 
                         id="btn-process", 
@@ -601,7 +602,7 @@ app.layout = dbc.Container(
     Output("upload-ready", "data"),
     Output("upload-zip", "filename"),
     Output("sample-info", "children"),
-    Input("file-tabs", "value"),
+    Input("file-tabs", "active_tab"),
     Input("upload-zip", "contents"),
     State("upload-zip", "filename"),
     Input("sample-file-dropdown", "value"),
