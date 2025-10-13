@@ -16,8 +16,8 @@ ORS_API_KEY = "YOUR_ORS_API_KEY"
 PROFILE = "cycling-regular"
 USE_FIXED_SEED = True
 FIXED_SEED = 42
-N_RIDES = 60
-DIST_RANGE_KM = (25, 100)
+N_RIDES = 30
+DIST_RANGE_KM = (25, 50)
 OUTPUT_DIR = Path("data/sample")
 
 # Triangle roughly covering Belgium
@@ -31,9 +31,9 @@ HOME_LOCATIONS = {
     "Kortrijk": (3.2640, 50.8279),
     "Liège": (5.5797, 50.6326),
 }
-HOME = "Mechelen"
+HOME = "Liège"
 HOME_LOCATION = HOME_LOCATIONS[HOME]
-HOME_RADIUS_KM = 15                # Local rides radius around home
+HOME_RADIUS_KM = 10                # Local rides radius around home
 HOME_PROB = 0.7                    # Probability of starting near home
 ZIP_NAME = f"sample_rides_ors_{HOME}.zip"
 
