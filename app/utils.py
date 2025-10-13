@@ -144,7 +144,7 @@ def build_coverage_figure(df, agg_level, plot_type, filter_mode):
     else:
         intro = "In"
         verb = "newly covered"
-    suffix = "" if filter_mode == "progress" else "for the very first time"
+    suffix = "" if filter_mode == "progress" else " for the very first time"
 
     # --- Axis formatting & hovertemplate ---
     hover_date = "%{x|%Y}" if agg_level == "Y" else "%{x|%b %Y}"
@@ -154,7 +154,7 @@ def build_coverage_figure(df, agg_level, plot_type, filter_mode):
         hovertemplate=(
             f"{intro} <b>{hover_date}</b>, you {verb} "
             f"<b>%{{y:,}}</b> "
-            f"%{{fullData.name}}s {suffix}."
+            f"%{{fullData.name}}s{suffix}"
             "<extra></extra>"
         )
     )
