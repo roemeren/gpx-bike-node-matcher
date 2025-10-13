@@ -122,3 +122,12 @@ Open http://127.0.0.1:8050 in your browser
 The app relies on preprocessed data stored in `data/processed/`, which is automatically refreshed through a GitHub Actions workflow.  
 
 For details on how the underlying Geofabrik extracts are downloaded, processed, and how to update them manually (e.g., with **osmium** and **GDAL**), see the [Data Update Guide](https://github.com/roemeren/gpx-bike-node-matcher/wiki/Data-Update-Guide) in the project wiki.
+
+### Documentation & Wiki
+
+For more details on:
+- generating **sample GPX data** using OpenRouteService,
+- understanding the **project architecture**,
+- or exploring **developer notes and advanced usage**,
+
+visit the [📘 Project Wiki](https://github.com/roemeren/gpx-bike-node-matcher/wiki).
