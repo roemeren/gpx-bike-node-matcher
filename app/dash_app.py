@@ -311,38 +311,126 @@ app.layout = dbc.Container(
                 [
                     # KPI row
                     dbc.Row([
-                        dbc.Col(dbc.Card(dbc.CardBody([
-                            html.H5("No. Matched Nodes"),
-                            html.H2(id="kpi-totnodes", children="–"),
-                            html.Div(
-                                f"out of {len(bike_network_node)}",
-                                style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
-                            )
-                        ])), width=3),
-                        dbc.Col(dbc.Card(dbc.CardBody([
-                            html.H5("No. Matched Segments"),
-                            html.H2(id="kpi-totsegments", children="–"),
-                            html.Div(
-                                f"out of {len(bike_network_seg)}",
-                                style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
-                            )
-                        ])), width=3),
-                        dbc.Col(dbc.Card(dbc.CardBody([
-                            html.H5("Matched Segment Length"),
-                            html.H2(id="kpi-totlength", children="–"),
-                            html.Div(
-                                f"out of {bike_network_seg['length_km'].sum():.0f} km",
-                                style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
-                            )
-                        ])), width=3),
-                        dbc.Col(dbc.Card(dbc.CardBody([
-                            html.H5("No. Matched Tracks"),
-                            html.H2(id="kpi-tottracks", children="–"),
-                            html.Div(
-                                id="kpi-tottracks-outof",
-                                style={"fontSize": "12px", "color": "#666", "marginTop": "2px"}
-                            )
-                        ])), width=3),
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody([
+                                    html.H5("No. Matched Nodes", className="text-center mb-2"),
+
+                                    # KPI row: icon + number
+                                    html.Div([
+                                        html.Img(
+                                            src="https://img.icons8.com/ios/50/marker--v1.png",
+                                            width="36",
+                                            height="36",
+                                            style={"marginRight": "8px"}
+                                        ),
+                                        html.H2(id="kpi-totnodes", children="–", className="mb-0"),
+                                    ],
+                                    style={
+                                        "display": "flex",
+                                        "alignItems": "center",
+                                        "justifyContent": "center"
+                                    }),
+
+                                    html.Div(
+                                        f"out of {len(bike_network_node)}",
+                                        className="text-center text-muted",
+                                        style={"fontSize": "12px", "marginTop": "4px"}
+                                    ),
+                                ])
+                            ),
+                            width=3
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody([
+                                    html.H5("No. Matched Segments", className="text-center mb-2"),
+
+                                    # KPI row: icon + number
+                                    html.Div([
+                                        html.Img(
+                                            src="https://img.icons8.com/material-rounded/48/journey.png",
+                                            width="36",
+                                            height="36",
+                                            style={"marginRight": "8px"}
+                                        ),
+                                        html.H2(id="kpi-totsegments", children="–", className="mb-0"),
+                                    ],
+                                    style={
+                                        "display": "flex",
+                                        "alignItems": "center",
+                                        "justifyContent": "center"
+                                    }),
+
+                                    html.Div(
+                                        f"out of {len(bike_network_seg)}",
+                                        className="text-center text-muted",
+                                        style={"fontSize": "12px", "marginTop": "4px"}
+                                    ),
+                                ])
+                            ),
+                            width=3
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody([
+                                    html.H5("Matched Segment Length", className="text-center mb-2"),
+
+                                    # KPI row: icon + number
+                                    html.Div([
+                                        html.Img(
+                                            src="https://img.icons8.com/ios/50/length.png",
+                                            width="36",
+                                            height="36",
+                                            style={"marginRight": "8px"}
+                                        ),
+                                        html.H2(id="kpi-totlength", children="–", className="mb-0"),
+                                    ],
+                                    style={
+                                        "display": "flex",
+                                        "alignItems": "center",
+                                        "justifyContent": "center"
+                                    }),
+
+                                    html.Div(
+                                        f"out of {bike_network_seg['length_km'].sum():.0f} km",
+                                        className="text-center text-muted",
+                                        style={"fontSize": "12px", "marginTop": "4px"}
+                                    ),
+                                ])
+                            ),
+                            width=3
+                        ),
+                        dbc.Col(
+                            dbc.Card(
+                                dbc.CardBody([
+                                    html.H5("No. Matched Tracks", className="text-center mb-2"),
+
+                                    # KPI row: icon + value
+                                    html.Div([
+                                        html.Img(
+                                            src="https://img.icons8.com/ios/50/checked--v1.png",
+                                            width="36",
+                                            height="36",
+                                            style={"marginRight": "8px"}
+                                        ),
+                                        html.H2(id="kpi-tottracks", children="–", className="mb-0"),
+                                    ],
+                                    style={
+                                        "display": "flex",
+                                        "alignItems": "center",
+                                        "justifyContent": "center"
+                                    }),
+
+                                    html.Div(
+                                        id="kpi-tottracks-outof",
+                                        className="text-center text-muted",
+                                        style={"fontSize": "12px", "marginTop": "4px"}
+                                    ),
+                                ])
+                            ),
+                            width=3
+                        ),
                     ], className="mb-3"),
                     # Map & panels
                     dbc.Row([
@@ -546,69 +634,69 @@ app.layout = dbc.Container(
                                         tab_id="tab-chart",
                                         children = [
                                             dbc.Card(
-                                                        dbc.CardBody([
-                                                            dbc.Row([
-                                                                dbc.Col([
-                                                                    dbc.Label("Date Level"),
-                                                                    dbc.RadioItems(
-                                                                        id="agg-level",
-                                                                        options=[
-                                                                            {"label": "Year", "value": "Y"},
-                                                                            {"label": "Year/Month", "value": "M"},
-                                                                        ],
-                                                                        value="Y",
-                                                                        inline=True,
-                                                                    )
-                                                                ], md=3),
+                                                dbc.CardBody([
+                                                    dbc.Row([
+                                                        dbc.Col([
+                                                            dbc.Label("Date Level"),
+                                                            dbc.RadioItems(
+                                                                id="agg-level",
+                                                                options=[
+                                                                    {"label": "Year", "value": "Y"},
+                                                                    {"label": "Year/Month", "value": "M"},
+                                                                ],
+                                                                value="Y",
+                                                                inline=True,
+                                                            )
+                                                        ], md=3),
 
-                                                                dbc.Col([
-                                                                    dbc.Label("Plot Type"),
-                                                                    dbc.RadioItems(
-                                                                        id="plot-type",
-                                                                        options=[
-                                                                            {"label": "Cumul", "value": "cumulative"},
-                                                                            {"label": "Count", "value": "aggregate"},
-                                                                        ],
-                                                                        value="cumulative",
-                                                                        inline=True,
-                                                                    ),
-                                                                ], md=3),
+                                                        dbc.Col([
+                                                            dbc.Label("Plot Type"),
+                                                            dbc.RadioItems(
+                                                                id="plot-type",
+                                                                options=[
+                                                                    {"label": "Cumul", "value": "cumulative"},
+                                                                    {"label": "Count", "value": "aggregate"},
+                                                                ],
+                                                                value="cumulative",
+                                                                inline=True,
+                                                            ),
+                                                        ], md=3),
 
-                                                                dbc.Col([
-                                                                    dbc.Label("Element Type"),
-                                                                    dbc.RadioItems(
-                                                                        id="element-type",
-                                                                        options=[
-                                                                            {"label": "Nodes", "value": "node"},
-                                                                            {"label": "Segments", "value": "segment"},
-                                                                        ],
-                                                                        value="node",
-                                                                        inline=True,
-                                                                    ),
-                                                                ], md=3),
+                                                        dbc.Col([
+                                                            dbc.Label("Element Type"),
+                                                            dbc.RadioItems(
+                                                                id="element-type",
+                                                                options=[
+                                                                    {"label": "Nodes", "value": "node"},
+                                                                    {"label": "Segments", "value": "segment"},
+                                                                ],
+                                                                value="node",
+                                                                inline=True,
+                                                            ),
+                                                        ], md=3),
 
-                                                                dbc.Col([
-                                                                    dbc.Label("Filter Mode"),
-                                                                    dbc.RadioItems(
-                                                                        id="filter-mode",
-                                                                        options=[
-                                                                            {"label": "All", "value": "progress"},
-                                                                            {"label": "New", "value": "discoveries"},
-                                                                        ],
-                                                                        value="progress",
-                                                                        inline=True,
-                                                                    ),
-                                                                ], md=3),
+                                                        dbc.Col([
+                                                            dbc.Label("Filter Mode"),
+                                                            dbc.RadioItems(
+                                                                id="filter-mode",
+                                                                options=[
+                                                                    {"label": "All", "value": "progress"},
+                                                                    {"label": "New", "value": "discoveries"},
+                                                                ],
+                                                                value="progress",
+                                                                inline=True,
+                                                            ),
+                                                        ], md=3),
 
-                                                            ], className="gy-2"),
-                                                        ]),
-                                                        className="mb-2 shadow-sm",
-                                                    ),
-                                                    dcc.Graph(
-                                                        id="line-chart", 
-                                                        config={"displayModeBar": False},
-                                                        style={"height": "425px",},
-                                                    ),
+                                                    ], className="gy-2"),
+                                                ]),
+                                                className="mb-2 shadow-sm",
+                                            ),
+                                            dcc.Graph(
+                                                id="line-chart", 
+                                                config={"displayModeBar": False},
+                                                style={"height": "425px",},
+                                            ),
                                         ]
                                     )
                                 ],
@@ -956,7 +1044,7 @@ def filter_data(store, date_range):
     # Calculate KPIs
     total_segments = len(agg_seg)
     total_nodes = len(agg_nodes)
-    total_length = round(agg_seg["length_km"].sum(), 2)
+    total_length = round(agg_seg["length_km"].sum())
     total_tracks = len(gdf_gpx_filtered)
     total_matched = gdf_gpx_filtered["matched_flag"].sum()
 
