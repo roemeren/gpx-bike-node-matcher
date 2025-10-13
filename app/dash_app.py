@@ -146,29 +146,34 @@ app.layout = dbc.Container(
                                 ],
                             ),
                         ],
-                        style={"marginBottom": "15px"},
+                        style={"marginBottom": "5px"},
                     ),
 
                     dbc.Button(
                         "Process ZIP", 
                         id="btn-process", 
                         color="primary", 
-                        disabled=False, 
-                        className="mb-3"
+                        size="sm",
+                        className="mb-2"
                     ),
 
-                    dbc.Progress(id="progress", value=0, striped=True, animated=True, className="mb-3"),
+                    dbc.Progress(
+                        id="progress",
+                        value=0,
+                        striped=True,
+                        animated=True,
+                        className="mb-1",
+                    ),
 
                     html.Div(
                         id="processing-status",
                         style={
-                            "padding": "5px 10px",
-                            "borderRadius": "5px",
+                            "padding": "2px 8px",
                             "fontFamily": "monospace",
                             "color": COLOR_PROCESSING,
-                            "fontSize": "0.95rem"
+                            "fontSize": "0.9rem",
                         },
-                        className="mb-2",
+                        className="mb-1",
                     ),
 
                     html.Div(
@@ -176,12 +181,13 @@ app.layout = dbc.Container(
                             "Download Results",
                             id="btn-download",
                             color="success",
-                            className="mt-2",
+                            size="sm",
+                            className="mt-1",
                             external_link=True,
                             style={"display": "none"} # initially hidden
                         ),
                         id="download-container",
-                        className="mb-3",
+                        className="mb-2",
                     ),
 
                     html.Hr(style={"margin": "20px 0"}),
@@ -191,24 +197,38 @@ app.layout = dbc.Container(
                     # =======================
                     html.H5("Dashboard Controls", className="mb-3", style={"fontWeight": "600"}),
 
-                    dbc.Button(
-                        "Reset Map", 
-                        id="reset-map-btn", 
-                        color="secondary", 
-                        style={"marginLeft": "20px"}, 
-                        className="mb-3"
-                    ),
-
-                    html.Div(
-                        dcc.Checklist(
-                            id="checkbox-show-hover",
-                            options=[{"label": "Track Focus", "value": "hover"}],
-                            value=[],  # default is unchecked, i.e., hover off
-                            inputStyle={"margin-right": "5px"},
-                            labelStyle={"display": "inline-block", "margin-right": "10px"},
-                        ),
-                        style={"marginLeft": "20px"},
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    "Reset Map", 
+                                    id="reset-map-btn", 
+                                    color="secondary", 
+                                    size="sm",  # smaller to match checklist height
+                                    className="me-2",  # right margin
+                                ),
+                                width="auto",
+                            ),
+                            dbc.Col(
+                                dcc.Checklist(
+                                    id="checkbox-show-hover",
+                                    options=[{"label": "Track Focus", "value": "hover"}],
+                                    value=[],  # default is unchecked, i.e., hover off
+                                    inputStyle={"margin-right": "5px"},
+                                    labelStyle={
+                                        "display": "inline-block", 
+                                        "margin-right": "10px", 
+                                        "font-size": "0.9rem"
+                                    },
+                                ),
+                                width="auto",
+                                className="d-flex align-items-center",
+                            ),
+                        ],
+                        justify="start",
+                        align="center",
                         className="mb-3",
+                        style={"marginLeft": "20px"},
                     ),
 
                     html.Div(
@@ -331,7 +351,7 @@ app.layout = dbc.Container(
                             dl.Map(
                                 center=INITIAL_CENTER, 
                                 zoom=INITIAL_ZOOM,
-                                style={"width": "100%", "height": "600px"},
+                                style={"width": "100%", "height": "625px"},
                                 children=[
                                     # https://www.dash-leaflet.com/components/controls/layers_control (v1.1.2)
                                     dl.LayersControl(
@@ -416,9 +436,14 @@ app.layout = dbc.Container(
                                         children=[
                                             html.P(
                                                 id="segment-statistics-descr",
-                                                style={"fontStyle": "italic", "color": COLOR_MESSAGE, "marginTop": "5px", "fontSize": "13px"}
+                                                style={"fontStyle": "italic", "color": COLOR_MESSAGE, 
+                                                       "marginTop": "5px", "fontSize": "13px"}
                                             ),
-                                            html.Button("Unselect All", id="unselect-all-btn-seg", style={"display": "none"}),
+                                            html.Button(
+                                                "Unselect All", 
+                                                id="unselect-all-btn-seg", 
+                                                style={"display": "none"}
+                                            ),
                                             dash_table.DataTable(
                                                 id="table-segments-agg",
                                                 columns=[],
@@ -467,9 +492,14 @@ app.layout = dbc.Container(
                                         children=[
                                             html.P(
                                                 id="node-statistics-descr",
-                                                style={"fontStyle": "italic", "color": COLOR_MESSAGE, "marginTop": "5px", "fontSize": "13px"}
+                                                style={"fontStyle": "italic", "color": COLOR_MESSAGE, 
+                                                       "marginTop": "5px", "fontSize": "13px"}
                                             ),
-                                            html.Button("Unselect All", id="unselect-all-btn-nodes", style={"display": "none"}),
+                                            html.Button(
+                                                "Unselect All", 
+                                                id="unselect-all-btn-nodes", 
+                                                style={"display": "none"}
+                                            ),
                                             dash_table.DataTable(
                                                 id="table-nodes-agg",
                                                 columns=[],
