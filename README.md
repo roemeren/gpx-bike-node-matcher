@@ -23,20 +23,24 @@ A live demo of the app is available on [Render](https://gpx-bike-node-matcher.on
 
 To try it out:
 
-1. Upload a ZIP file containing your GPX rides.  
+1. Select one of the **sample ZIP files** from the default tab, or switch to the **Upload Your Own ZIP** tab to use your own GPX rides. 
 2. Click **Process ZIP** to match them against the bike node network.  
 3. Explore the results in the dashboard and on the interactive map.  
 4. Download the processed outputs as a ZIP file when finished.
 
-⚠️ **Note**
+> ⚠️ **Note**  
+> The hosted version currently includes **only the Belgian bike node network** due to memory limits on the free Render tier.  Performance may be slower for larger uploads 🐢.  
+>
+> For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
 
-The hosted version currently includes **only the Belgian bike node network** due to memory limits on the free Render tier. Performance may be slower for larger uploads 🐢.
-
-For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
 
 ---
 
 ## App Overview
+
+> ⚠️ **Note**  
+> The screenshots below are based on an earlier version of the app, but the overall layout and functionality remain representative of the current version.
+
 
 ### Upload and process GPX files
 
