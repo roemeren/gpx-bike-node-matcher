@@ -268,9 +268,32 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     all_gpx_gdf = all_gpx_gdf.drop(columns="buffer_geom")
     all_gpx_gdf["track_length"] = all_gpx_gdf.geometry.length / 1000.0
 
-    # --- add match flag per GPX track ---
-    matched_uids = set(all_segments["track_uid"].unique())
-    all_gpx_gdf["matched_flag"] = all_gpx_gdf["track_uid"].isin(matched_uids)
+    # --- add match stats per GPX track ---
+    seg_counts = (
+        all_segments.groupby("track_uid")
+        .size()
+        .rename("matched_segments_count")
+        .reset_index()
+    )
+    node_counts = (
+        all_nodes.groupby("track_uid")
+        .size()
+        .rename("matched_nodes_count")
+        .reset_index()
+    )
+
+    # merge counts into GPX dataframe
+    all_gpx_gdf = (
+        all_gpx_gdf
+        .merge(seg_counts, on="track_uid", how="left")
+        .merge(node_counts, on="track_uid", how="left")
+    )
+
+    # fill NaN counts with 0 for tracks without matches
+    all_gpx_gdf[["matched_segments_count", "matched_nodes_count"]] = (
+        all_gpx_gdf[["matched_segments_count", 
+                     "matched_nodes_count"]].fillna(0).astype(int)
+    )
 
     # --- add first matched date to segments and nodes ---
     all_segments["track_date_min"] = all_segments.groupby("osm_id")["track_date"].transform("min")

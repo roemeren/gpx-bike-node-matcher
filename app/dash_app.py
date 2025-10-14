@@ -1068,7 +1068,7 @@ def filter_data(store, date_range):
     total_nodes = len(agg_nodes)
     total_length = round(agg_seg["length_km"].sum())
     total_tracks = len(gdf_gpx_filtered)
-    total_matched = gdf_gpx_filtered["matched_flag"].sum()
+    total_matched = (gdf_gpx_filtered["matched_segments_count"] > 0).sum()
 
     return (
         total_segments,

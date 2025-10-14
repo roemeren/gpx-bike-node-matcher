@@ -42,8 +42,9 @@ def make_track_tooltip(feature):
         # fallback if it's already clean
         date_str = row['track_date'][:10]
 
-    # Convert boolean to 'Yes'/'No'
-    matched_text = "Yes" if row.get("matched_flag") else "No"
+    # Get matched counts (default to 0 if missing)
+    matched_segments = int(row.get("matched_segments_count", 0))
+    matched_nodes = int(row.get("matched_nodes_count", 0))
 
     html_string = f"""
     <div style="line-height:1.4">
@@ -56,8 +57,10 @@ def make_track_tooltip(feature):
         <span style="color:#000; font-size:12px; font-weight:bold;">{row['track_length']:.2f} km</span><br>
         <span style="color:#999; font-size:12px;">File: </span>
         <span style="color:#000; font-size:12px; font-weight:bold;">{row['gpx_name']}</span><br>
-        <span style="color:#999; font-size:12px;">Matched: </span>
-        <span style="color:#000; font-size:12px; font-weight:bold;">{matched_text}</span>
+        <span style="color:#999; font-size:12px;">Matched Segments: </span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{matched_segments}</span><br>
+        <span style="color:#999; font-size:12px;">Matched Nodes: </span>
+        <span style="color:#000; font-size:12px; font-weight:bold;">{matched_nodes}</span>
         <br><br>
         <i style="color:#999; font-size:14px;">Click to zoom in on this track</i>
     </div>
