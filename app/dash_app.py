@@ -513,7 +513,10 @@ app.layout = dbc.Container(
                                     # Highlighted segments
                                     dl.LayerGroup(id="layer-selected-segments"),
                                     # Highlighted segments from nodes
-                                    dl.LayerGroup(id="layer-selected-nodes")           
+                                    dl.LayerGroup(id="layer-selected-nodes"),
+                                    # Add map controls
+                                    dl.FullScreenControl(),
+                                    dl.ScaleControl(position="bottomleft", imperial=False),
                                 ],
                                 id="map"
                             ),
