@@ -85,7 +85,7 @@ app.layout = dbc.Container(
                                                 style={"width": "100%", "marginBottom": "33px"},
                                             ),
                                         ],
-                                        className="p-2 d-flex flex-column justify-content-center",
+                                        className="p-2",
                                     ),
                                 ],
                             ),
@@ -733,18 +733,22 @@ app.layout = dbc.Container(
 )
 def handle_file_selection(active_tab, upload_contents, upload_filename, sample_path, sample_filename):
     """
-    Handles both sample file selection and user uploads, depending on the active tab.
-    Saves the ZIP into UPLOAD_FOLDER and returns readiness flags while preserving
-    the last selected/uploaded file in the inactive tab.
+    Handle both sample file selection and user uploads based on the active tab.
+    Copies or decodes the selected ZIP into UPLOAD_FOLDER and updates readiness
+    flags, while preserving the previously selected or uploaded file from the
+    inactive tab.
     """
     # sample tab: copy paste sample file if not done already
-    if active_tab == "tab-sample" and sample_path:
-        sample_basename = os.path.basename(sample_path)
-        dest_path = os.path.join(UPLOAD_FOLDER, sample_basename)
-        if not os.path.exists(dest_path):
-            shutil.copy(sample_path, dest_path)
-
-        return True, upload_filename, sample_basename
+    if active_tab == "tab-sample":
+        if sample_path:
+            sample_basename = os.path.basename(sample_path)
+            dest_path = os.path.join(UPLOAD_FOLDER, sample_basename)
+            if not os.path.exists(dest_path):
+                shutil.copy(sample_path, dest_path)
+            return True, upload_filename, sample_basename
+        else:
+            # no sample file selected or selection is cleared
+            return upload_filename is not None, upload_filename, None
 
     # upload tab: upload file if not uploaded yet
     elif active_tab == "tab-upload" and upload_contents and upload_filename:
@@ -775,7 +779,6 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
     """
     # guard clause: proceed only if a file has been fully saved to disk
     if not file_ready:
-        # nothing ready at all
         raise PreventUpdate
     
     # get file name based on active tab
