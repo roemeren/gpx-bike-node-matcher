@@ -53,36 +53,6 @@ print(f"Memory usage after initializing application: {process.memory_info().rss 
 # ---------- Layout ----------
 app.layout = dbc.Container(
     [
-        html.Div([
-            dbc.Row([
-                dbc.Col([
-                    html.Div([
-                        html.Img(
-                            src="assets/repo-icon.png",
-                            height="110px",
-                            style={"marginRight": "15px"}
-                        ),
-                        html.Div([
-                            html.H1(app_header, className="my-2 display-4 mb-0"),
-                            html.P(app_descr, className="text-muted mb-4"),
-                        ], style={"textAlign": "center"}
-                        ),
-                    ], style={
-                        "display": "flex",
-                        "alignItems": "center",
-                        "justifyContent": "center"
-                    }),
-                ])
-            ], 
-            className="align-items-center justify-content-center g-0",
-            style={
-                "backgroundColor": "#E6F7FF",
-                "marginBottom": "10px",     # spacing below header
-                "borderRadius": "8px"
-            },
-            ),
-        ]),
-
         dbc.Row([
             # Left panel
             dbc.Col(
@@ -110,11 +80,7 @@ app.layout = dbc.Container(
                                                     for f in Path("data/sample").glob("*.zip")
                                                 ],
                                                 placeholder="Choose sample dataset...",
-                                                style={"width": "100%", "marginBottom": "10px"},
-                                            ),
-                                            html.Div(
-                                                id="sample-info",
-                                                style={"fontSize": "13px", "color": "#666", "marginBottom": "10px"},
+                                                style={"width": "100%", "marginBottom": "32px"},
                                             ),
                                         ],
                                         className="p-2",
@@ -139,7 +105,10 @@ app.layout = dbc.Container(
                                                     "marginBottom": "10px",
                                                 },
                                             ),
-                                            html.Div(id="browse-info", className="mb-2"),
+                                            html.Div(
+                                                id="browse-info",
+                                                style={"fontSize": "13px", "color": "#666", "marginBottom": "10px"},
+                                            ),
                                         ],
                                         className="p-2",
                                     ),
@@ -152,9 +121,8 @@ app.layout = dbc.Container(
                     dbc.Button(
                         "Process ZIP", 
                         id="btn-process", 
-                        color="primary", 
-                        size="sm",
-                        className="mb-2"
+                        color="primary",
+                        className="mb-3"
                     ),
 
                     dbc.Progress(
@@ -162,7 +130,7 @@ app.layout = dbc.Container(
                         value=0,
                         striped=True,
                         animated=True,
-                        className="mb-1",
+                        className="mb-3",
                     ),
 
                     html.Div(
@@ -171,7 +139,8 @@ app.layout = dbc.Container(
                             "padding": "2px 8px",
                             "fontFamily": "monospace",
                             "color": COLOR_PROCESSING,
-                            "fontSize": "0.9rem",
+                            "fontSize": "0.8rem",
+                            "minHeight": "2em",  # ensures one-line height
                         },
                         className="mb-1",
                     ),
@@ -181,16 +150,15 @@ app.layout = dbc.Container(
                             "Download Results",
                             id="btn-download",
                             color="success",
-                            size="sm",
                             className="mt-1",
                             external_link=True,
-                            style={"display": "none"} # initially hidden
+                            style={"visibility": "hidden"}  # keeps layout space
                         ),
                         id="download-container",
                         className="mb-2",
                     ),
 
-                    html.Hr(style={"margin": "20px 0"}),
+                    html.Hr(className="my-4", style={"borderTop": "2px solid #ccc"}),
 
                     # =======================
                     # DASHBOARD CONTROLS
@@ -226,9 +194,8 @@ app.layout = dbc.Container(
                             ),
                         ],
                         justify="start",
-                        align="center",
-                        className="mb-3",
-                        style={"marginLeft": "20px"},
+                        className="mb-4",
+                        style={"marginLeft": "0px"},
                     ),
 
                     html.Div(
@@ -248,8 +215,8 @@ app.layout = dbc.Container(
                                 value=[SLIDER_MIN_YEAR, SLIDER_MAX_YEAR],
                             ),
                         ],
-                        className="mb-4",
-                        style={"width": "80%", "marginLeft": "10px"},
+                        className="mb-5",
+                        style={"marginLeft": "10px"},
                     ),
 
                     html.Div(
@@ -265,11 +232,11 @@ app.layout = dbc.Container(
                                 tooltip={"placement": "bottom", "always_visible": True}
                             )
                         ], 
-                        className="mb-4",
-                        style={"width": "80%", "marginLeft": "10px"},
+                        className="mb-5",
+                        style={"marginLeft": "10px"},
                     ),
 
-                    html.Hr(style={"margin": "20px 0"}),
+                    html.Hr(className="my-4", style={"borderTop": "2px solid #ccc"}),
 
                     # =======================
                     # META INFO
@@ -301,14 +268,45 @@ app.layout = dbc.Container(
                     # store filtered & aggregated matched segments and nodes
                     dcc.Store(id="geojson-store-filtered", data={}),
                 ],
-                # panel width out of 12
-                width=3,
+                # left panel width: around 2.5/12 (22%)
+                width = "auto",
                 className="p-3 rounded",
-                style={"backgroundColor": "#f0f0f0"},
+                style={"flex": "0 0 22%", "backgroundColor": "#f0f0f0"},
             ),
             # Right panel
             dbc.Col(
                 [
+                    # Header row
+                    html.Div([
+                        dbc.Row([
+                            dbc.Col([
+                                html.Div([
+                                    html.Img(
+                                        src="assets/repo-icon.png",
+                                        height="110px",
+                                        style={"marginRight": "15px"}
+                                    ),
+                                    html.Div([
+                                        html.H1(app_header, className="my-2 display-4 mb-0"),
+                                        html.P(app_descr, className="text-muted mb-4"),
+                                    ], style={"textAlign": "center"}
+                                    ),
+                                ], style={
+                                    "display": "flex",
+                                    "alignItems": "center",
+                                    "justifyContent": "center"
+                                }),
+                            ])
+                        ], 
+                        className="align-items-center justify-content-center g-0",
+                        style={
+                            "backgroundColor": "#E6F7FF",
+                            "marginBottom": "10px",     # spacing below header
+                            "borderRadius": "8px"
+                        },
+                        ),
+                    ]),
+
                     # KPI row
                     dbc.Row([
                         dbc.Col(
@@ -432,6 +430,7 @@ app.layout = dbc.Container(
                             width=3
                         ),
                     ], className="mb-3"),
+                    
                     # Map & panels
                     dbc.Row([
                         dbc.Col(
@@ -707,8 +706,8 @@ app.layout = dbc.Container(
                         )
                     ])
                 ],
-                # right panel width (out of 12)
-                width=9
+                # right panel width: fill up leftover space
+                style={"flex": "1"}
             )
         ])
     ],
@@ -719,7 +718,6 @@ app.layout = dbc.Container(
 @app.callback(
     Output("upload-ready", "data"),
     Output("upload-zip", "filename"),
-    Output("sample-info", "children"),
     Input("file-tabs", "active_tab"),
     Input("upload-zip", "contents"),
     State("upload-zip", "filename"),
@@ -737,9 +735,8 @@ def handle_file_selection(active_tab, upload_contents, upload_filename, sample_p
     if active_tab == "tab-sample" and sample_path:
         dest_path = os.path.join(UPLOAD_FOLDER, os.path.basename(sample_path))
         shutil.copy(sample_path, dest_path)
-        info = f"Selected sample: {Path(sample_path).name}"
         print(f"Using sample file: {sample_path}")
-        return True, os.path.basename(sample_path), info
+        return True, os.path.basename(sample_path)
 
     # Upload tab selected
     elif active_tab == "tab-upload" and upload_contents and upload_filename:
@@ -749,7 +746,7 @@ def handle_file_selection(active_tab, upload_contents, upload_filename, sample_p
         with open(saved_path, "wb") as f:
             f.write(decoded)
         print(f"Uploaded file saved: {upload_filename}")
-        return True, upload_filename, no_update
+        return True, upload_filename
 
     # No valid selection or upload yet
     raise PreventUpdate
@@ -870,7 +867,7 @@ def update_progress(*_):
     label = f"{pct}%" if pct >= 5 else ""
     btn_disabled = progress_state.get("btn-disabled", False)
     href = progress_state.get("store_data", {}).get("download_href")
-    style = {"width": "40%", "display": "block" if pct >= 100 else "none"}
+    style = {"width": "40%", "visibility": "visible" if pct >= 100 else "hidden"}
 
     finished_at = progress_state.get("finished_at")
     status = progress_state.get("status")
