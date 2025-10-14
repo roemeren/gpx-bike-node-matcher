@@ -69,7 +69,8 @@ app.layout = dbc.Container(
                         children=[
                             dbc.Tab(
                                 label="Use Sample Dataset",
-                                tab_id="tab-sample",
+                                tab_id="tab-sample", # id within tabs container
+                                id="tab-sample-content", # Dash component ID
                                 children=[
                                     html.Div(
                                         [
@@ -81,16 +82,17 @@ app.layout = dbc.Container(
                                                     for f in Path("data/sample").glob("*.zip")
                                                 ],
                                                 placeholder="Choose sample dataset...",
-                                                style={"width": "100%", "marginBottom": "32px"},
+                                                style={"width": "100%", "marginBottom": "33px"},
                                             ),
                                         ],
-                                        className="p-2",
+                                        className="p-2 d-flex flex-column justify-content-center",
                                     ),
                                 ],
                             ),
                             dbc.Tab(
                                 label="Upload Your Own ZIP",
-                                tab_id="tab-upload",
+                                tab_id="tab-upload", # id within tabs container
+                                id="tab-upload-content", # Dash component ID
                                 children=[
                                     html.Div(
                                         [
@@ -108,7 +110,7 @@ app.layout = dbc.Container(
                                             ),
                                             html.Div(
                                                 id="browse-info",
-                                                style={"fontSize": "13px", "color": "#666", "marginBottom": "10px"},
+                                                style={"fontSize": "14px", "color": COLOR_PROCESSING, "marginBottom": "10px"},
                                             ),
                                         ],
                                         className="p-2",
@@ -140,7 +142,7 @@ app.layout = dbc.Container(
                             "padding": "2px 8px",
                             "fontFamily": "monospace",
                             "color": COLOR_PROCESSING,
-                            "fontSize": "0.8rem",
+                            "fontSize": "0.85rem",
                             "minHeight": "2em",  # ensures one-line height
                         },
                         className="mb-1",
@@ -788,7 +790,6 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
 
     # initialize progress data
     progress_state["pct"] = 0
-    progress_state["btn-disabled"] = True
     progress_state["current-task"] = f"Preparing to process {filename}"
     progress_state["previous-task"] = ""
     progress_state["show-dots"] = True
@@ -805,7 +806,6 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         if any(df.empty for df in [all_segments, all_nodes, all_gpx]):
             progress_state["current-task"] = f"Processing failed for {filename}: {message}"
             progress_state["pct"] = 100
-            progress_state["btn-disabled"] = False
             progress_state["status"] = "exited"
             return
 
@@ -842,7 +842,6 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         }
 
         progress_state["pct"] = 100
-        progress_state["btn-disabled"] = False
         progress_state["current-task"] = f"Finished processing {filename}"
         # store timestamp for deactivation of polling
         progress_state["status"] = "finished"
@@ -868,14 +867,20 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
     Output("geojson-store-full", "data"),
     Output("upload-zip", "disabled"),
     Output("sample-file-dropdown", "disabled"),
+    Output("tab-upload-content", "disabled"),
+    Output("tab-sample-content", "disabled"),
     Output("year-slider", "min"),
     Output("year-slider", "max"),
     Output("year-slider", "value"),
     Input("progress-poller", "n_intervals"), # initially None
     Input("processing-started", "data"), # will (re)activate the poller
+    State("file-tabs", "active_tab"),
     prevent_initial_call=True
 )
-def update_progress(*_):
+def update_progress(*args):
+    # Get active tab
+    active_tab = args[-1]
+
     # Animate dots
     current_task = progress_state.get("current-task", "")
     prev_task = progress_state.get("previous-task")
@@ -885,17 +890,18 @@ def update_progress(*_):
     dots = "." * progress_state["dot-count"] if progress_state.get("show-dots") else ""
     current_task += dots
 
-    # Base UI state
+    # Base UI state while processing
     pct = progress_state.get("pct", 0)
     label = f"{pct}%" if pct >= 5 else ""
-    btn_disabled = progress_state.get("btn-disabled", False)
+    btn_disabled = True
     href = progress_state.get("store_data", {}).get("download_href")
     style = {"width": "40%", "visibility": "visible" if pct >= 100 else "hidden"}
-
     finished_at = progress_state.get("finished_at")
     status = progress_state.get("status")
     poller_disabled = False
     store_data, min_year, max_year, slider_val = (no_update,) * 4
+    upload_tab_disabled = (active_tab == "tab-sample")
+    sample_tab_disabled = not upload_tab_disabled
 
     # Handle completion
     if status == "exited":
@@ -903,7 +909,10 @@ def update_progress(*_):
         pct = 0
         label = ""
         poller_disabled = True
-    elif finished_at:
+        btn_disabled = False
+        upload_tab_disabled = False
+        sample_tab_disabled = False
+    elif status == "finished":
         # Normal completion
         store_data = progress_state.get("store_data")
         min_year = store_data["track_date_years"]["min"]
@@ -911,11 +920,13 @@ def update_progress(*_):
         slider_val = [min_year, max_year]
         # Wait 3s before progress bar reset
         if time.time() - finished_at >= 3:
-            
             pct = 0
             label = ""
             poller_disabled = True
             progress_state.pop("finished_at", None)
+            btn_disabled = False
+            upload_tab_disabled = False
+            sample_tab_disabled = False
 
     return (
         pct,
@@ -929,6 +940,8 @@ def update_progress(*_):
         store_data,
         btn_disabled,
         btn_disabled,
+        upload_tab_disabled,
+        sample_tab_disabled,
         min_year,
         max_year,
         slider_val
