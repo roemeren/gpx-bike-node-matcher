@@ -13,8 +13,9 @@ from dash.exceptions import PreventUpdate
 from dash import callback_context as ctx
 import time
 
-# --- initialize static folder ---
+# --- initialize folders ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # --- module-level state ---
 _tooltips_html = {}
@@ -260,13 +261,15 @@ app.layout = dbc.Container(
                     # hidden polling interval
                     dcc.Interval(id="progress-poller", interval=2000, disabled=True),
                     # stores for some of the callback outputs
-                    dcc.Store(id="upload-ready"),
+                    dcc.Store(id="file-ready"),
                     dcc.Store(id="processing-started"),
                     dcc.Store(id="selected-track"),
                     # store matched segments and nodes
                     dcc.Store(id="geojson-store-full", data={}),
                     # store filtered & aggregated matched segments and nodes
                     dcc.Store(id="geojson-store-filtered", data={}),
+                    # store selected sample file
+                    dcc.Store(id="sample-file-store", data={}),
                 ],
                 # left panel width: around 2.5/12 (22%)
                 width = "auto",
@@ -716,52 +719,72 @@ app.layout = dbc.Container(
 
 # ---------- Callbacks ----------
 @app.callback(
-    Output("upload-ready", "data"),
+    Output("file-ready", "data"),
     Output("upload-zip", "filename"),
+    Output("sample-file-store", "data"),
     Input("file-tabs", "active_tab"),
     Input("upload-zip", "contents"),
     State("upload-zip", "filename"),
     Input("sample-file-dropdown", "value"),
+    State("sample-file-store", "data"),
     prevent_initial_call=True
 )
-def handle_file_selection(active_tab, upload_contents, upload_filename, sample_path):
+def handle_file_selection(active_tab, upload_contents, upload_filename, sample_path, sample_filename):
     """
     Handles both sample file selection and user uploads, depending on the active tab.
-    Saves the ZIP into UPLOAD_FOLDER and returns filename + readiness flag.
+    Saves the ZIP into UPLOAD_FOLDER and returns readiness flags while preserving
+    the last selected/uploaded file in the inactive tab.
     """
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-    # Sample tab selected
+    # sample tab: copy paste sample file if not done already
     if active_tab == "tab-sample" and sample_path:
-        dest_path = os.path.join(UPLOAD_FOLDER, os.path.basename(sample_path))
-        shutil.copy(sample_path, dest_path)
-        print(f"Using sample file: {sample_path}")
-        return True, os.path.basename(sample_path)
+        sample_basename = os.path.basename(sample_path)
+        dest_path = os.path.join(UPLOAD_FOLDER, sample_basename)
+        if not os.path.exists(dest_path):
+            shutil.copy(sample_path, dest_path)
 
-    # Upload tab selected
+        return True, upload_filename, sample_basename
+
+    # upload tab: upload file if not uploaded yet
     elif active_tab == "tab-upload" and upload_contents and upload_filename:
-        _, content_string = upload_contents.split(",")
-        decoded = base64.b64decode(content_string)
-        saved_path = os.path.join(UPLOAD_FOLDER, upload_filename)
-        with open(saved_path, "wb") as f:
-            f.write(decoded)
-        print(f"Uploaded file saved: {upload_filename}")
-        return True, upload_filename
+        dest_path = os.path.join(UPLOAD_FOLDER, upload_filename)
+        if not os.path.exists(dest_path):
+            _, content_string = upload_contents.split(",")
+            decoded = base64.b64decode(content_string)
+            with open(dest_path, "wb") as f:
+                f.write(decoded)
 
-    # No valid selection or upload yet
+        return True, upload_filename, sample_filename
+
     raise PreventUpdate
 
 @app.callback(
     Output("processing-started", "data"),
     Input("btn-process", "n_clicks"),
     State("upload-zip", "filename"),
-    State("upload-ready", "data"),
+    State("sample-file-store", "data"),
+    State("file-ready", "data"),
+    State("file-tabs", "active_tab"),
     prevent_initial_call=True
 )
-def start_processing(_, filename, upload_ready):
-    # guard clause: proceed only if the file has been fully saved to disk
-    if not filename or not upload_ready:
+def start_processing(_, upload_filename, sample_filename, file_ready, active_tab):
+    """
+    Triggered by the 'Process ZIP' button.
+    Decides which file (uploaded or sample) to process based on the active tab.
+    """
+    # guard clause: proceed only if a file has been fully saved to disk
+    if not file_ready:
+        # nothing ready at all
         raise PreventUpdate
+    
+    # get file name based on active tab
+    if active_tab == "tab-upload":
+        if not upload_filename:
+            raise PreventUpdate
+        filename = upload_filename
+    elif active_tab == "tab-sample":
+        if not sample_filename:
+            raise PreventUpdate
+        filename = sample_filename
 
     # initialize progress data
     progress_state["pct"] = 0
