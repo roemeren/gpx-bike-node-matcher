@@ -33,6 +33,7 @@ SLIDER_MAX_YEAR=datetime.datetime.now().year
 
 # App settings
 DEBUG_MODE = True
+TOOLTIP_DELAY = {"show": 500, "hide": 100}
 
 # JS settings
 SELECTED_KEY = "track_uid"

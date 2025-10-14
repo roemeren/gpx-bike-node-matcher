@@ -171,27 +171,43 @@ app.layout = dbc.Container(
                     dbc.Row(
                         [
                             dbc.Col(
-                                dbc.Button(
-                                    "Reset Map", 
-                                    id="reset-map-btn", 
-                                    color="secondary", 
-                                    size="sm",  # smaller to match checklist height
-                                    className="me-2",  # right margin
-                                ),
+                                html.Div([
+                                    dbc.Button(
+                                        "Reset Map",
+                                        id="reset-map-btn",
+                                        color="secondary",
+                                        size="sm",
+                                        className="me-2"
+                                    ),
+                                    dbc.Tooltip(
+                                        "Click to reset map view, base layer, and overlays",
+                                        target="reset-map-btn",
+                                        placement="top",
+                                        delay=TOOLTIP_DELAY,
+                                    )
+                                ]),
                                 width="auto",
                             ),
                             dbc.Col(
-                                dcc.Checklist(
-                                    id="checkbox-show-hover",
-                                    options=[{"label": "Track Focus", "value": "hover"}],
-                                    value=[],  # default is unchecked, i.e., hover off
-                                    inputStyle={"margin-right": "5px"},
-                                    labelStyle={
-                                        "display": "inline-block", 
-                                        "margin-right": "10px", 
-                                        "font-size": "0.9rem"
-                                    },
-                                ),
+                                html.Div([
+                                    dcc.Checklist(
+                                        id="checkbox-show-hover",
+                                        options=[{"label": "Track Focus", "value": "hover"}],
+                                        value=[],  # default unchecked
+                                        inputStyle={"margin-right": "5px"},
+                                        labelStyle={
+                                            "display": "inline-block",
+                                            "margin-right": "10px",
+                                            "font-size": "0.9rem"
+                                        },
+                                    ),
+                                    dbc.Tooltip(
+                                        "Highlight and zoom on hovered GPX tracks",
+                                        target="checkbox-show-hover",
+                                        placement="top",
+                                        delay=TOOLTIP_DELAY,
+                                    ),
+                                ]),
                                 width="auto",
                                 className="d-flex align-items-center",
                             ),
@@ -217,6 +233,12 @@ app.layout = dbc.Container(
                                 tooltip={"placement": "bottom", "always_visible": True},
                                 value=[SLIDER_MIN_YEAR, SLIDER_MAX_YEAR],
                             ),
+                            dbc.Tooltip(
+                                "Filter tracks by their recording years",
+                                target="year-slider",
+                                placement="top",
+                                delay=TOOLTIP_DELAY,
+                            ),
                         ],
                         className="mb-5",
                         style={"marginLeft": "10px"},
@@ -233,7 +255,13 @@ app.layout = dbc.Container(
                                 value=100,
                                 marks={i: str(i) for i in range(20, 321, 50)},
                                 tooltip={"placement": "bottom", "always_visible": True}
-                            )
+                            ),
+                            dbc.Tooltip(
+                                "Adjust how closely nearby bike nodes are grouped into clusters",
+                                target="cluster-radius-slider",
+                                placement="top",
+                                delay=TOOLTIP_DELAY,
+                            ),
                         ], 
                         className="mb-5",
                         style={"marginLeft": "10px"},
