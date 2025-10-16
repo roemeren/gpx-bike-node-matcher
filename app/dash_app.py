@@ -913,7 +913,7 @@ def update_progress(*args):
 
     # Animate dots
     current_task = progress_state.get("current-task", "")
-    prev_task = progress_state.get("previous-task")
+    prev_task = progress_state.get("previous-task", "")
     progress_state["dot-count"] = 0 if current_task != prev_task \
         else (progress_state.get("dot-count", 0) + 1) % 4
     progress_state["previous-task"] = current_task

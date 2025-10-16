@@ -262,7 +262,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     )
 
     progress_state["show-dots"] = False
-    progress_state["current-task"] = "All GPX files processed successfully."
+    progress_state["current-task"] = "All GPX files processed successfully"
     progress_state["pct"] = 100
 
     all_gpx_gdf = all_gpx_gdf.drop(columns="buffer_geom")
