@@ -34,6 +34,15 @@ SLIDER_MAX_YEAR=datetime.datetime.now().year
 # App settings
 DEBUG_MODE = True
 TOOLTIP_DELAY = {"show": 500, "hide": 100}
+REPO_URL = "https://github.com/roemeren/gpx-bike-node-matcher"
+GEOFABRIK_URL = "https://download.geofabrik.de/europe/belgium.html#"
+
+# Icons
+ICON_NODE = "https://img.icons8.com/ios/50/marker--v1.png"
+ICON_SEGMENT = "https://img.icons8.com/material-rounded/48/journey.png"
+ICON_LENGTH = "https://img.icons8.com/ios/50/length.png"
+ICON_MATCH = "https://img.icons8.com/ios/50/checked--v1.png"
+ICON_REPO = "assets/repo-icon.png"
 
 # JS settings
 SELECTED_KEY = "track_uid"
