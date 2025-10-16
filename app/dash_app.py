@@ -925,7 +925,7 @@ def update_progress(*args):
     label = f"{pct}%" if pct >= 5 else ""
     btn_disabled = True
     href = progress_state.get("store_data", {}).get("download_href")
-    style = {"width": "40%", "visibility": "visible" if pct >= 100 else "hidden"}
+    style = {"width": "40%", "visibility": "hidden"}
     finished_at = progress_state.get("finished_at")
     status = progress_state.get("status")
     poller_disabled = False
@@ -955,6 +955,7 @@ def update_progress(*args):
             poller_disabled = True
             progress_state.pop("finished_at", None)
             btn_disabled = False
+            style["visibility"] = "visible"
             upload_tab_disabled = False
             sample_tab_disabled = False
 
