@@ -109,7 +109,8 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
         on Render free tier due to limited CPU and memory.
     """
     # --- unzip ---
-    zip_folder = os.path.join(UPLOAD_FOLDER, "temp")
+    zip_basename = os.path.splitext(os.path.basename(zip_file_path))[0]
+    zip_folder = os.path.join(UPLOAD_FOLDER, f"{zip_basename} files")
     if os.path.exists(zip_folder):
         shutil.rmtree(zip_folder)
     os.makedirs(zip_folder, exist_ok=True)
