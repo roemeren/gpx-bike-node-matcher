@@ -448,11 +448,11 @@ app.layout = dbc.Container(
                                             style={"marginRight": "8px"}
                                         ),
                                         html.H2(id="kpi-tottracks", children="–", className="mb-0"),
-                                    ],
-                                    style={
-                                        "display": "flex",
-                                        "alignItems": "center",
-                                        "justifyContent": "center"
+                                        ],
+                                        style={
+                                            "display": "flex",
+                                            "alignItems": "center",
+                                            "justifyContent": "center"
                                     }),
 
                                     html.Div(
