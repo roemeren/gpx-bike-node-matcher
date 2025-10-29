@@ -110,9 +110,8 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     """
     # --- unzip ---
     zip_basename = os.path.splitext(os.path.basename(zip_file_path))[0]
-    zip_folder = os.path.join(UPLOAD_FOLDER, f"{zip_basename} files")
-    if os.path.exists(zip_folder):
-        shutil.rmtree(zip_folder)
+    zip_folder = os.path.join(OUTPUT_FOLDER, f"{zip_basename} Files", "temp")
+    shutil.rmtree(zip_folder, ignore_errors=True)
     os.makedirs(zip_folder, exist_ok=True)
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
         zip_ref.extractall(zip_folder)
@@ -158,6 +157,9 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
                     gpx_rows.extend(results)
                 progress_state["current-task"] = f"Parsing GPX files (parallel): {i}/{total_files}"
                 progress_state["pct"] = round(i / total_files * 50)
+
+    # remove unzip folder
+    shutil.rmtree(zip_folder)
 
     if not gpx_rows:
         message = "No valid GPX data found. Please upload a different file."
@@ -303,17 +305,18 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf):
     message = ""
     return all_segments, all_nodes, all_gpx_gdf, message
 
-def create_result_zip(segments_path, nodes_path, gpx_path):
+def create_result_zip(base_name, segments_path, nodes_path, gpx_path):
     """
-    Zip the two GeoJSON result files and return the zip file path.
+    Zip the output GeoJSON result files and return the zip file path.
     """
-    zip_name = "matched_results.zip"
-    zip_path = os.path.join(STATIC_FOLDER, zip_name)
+    zip_name = f"{base_name} match.zip"
+    zip_folder = os.path.dirname(segments_path)
+    zip_path = os.path.join(zip_folder, zip_name)
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.write(segments_path, arcname="all_matched_segments_wgs84.geojson")
-        zf.write(nodes_path, arcname="all_matched_nodes_wgs84.geojson")
-        zf.write(gpx_path, arcname="all_gpx_wgs84.geojson")
+        zf.write(segments_path, arcname=os.path.basename(segments_path))
+        zf.write(nodes_path, arcname=os.path.basename(nodes_path))
+        zf.write(gpx_path, arcname=os.path.basename(gpx_path))
     
     return zip_name
 

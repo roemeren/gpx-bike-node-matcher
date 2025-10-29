@@ -16,6 +16,7 @@ import time
 # --- initialize folders ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # --- module-level state ---
 _tooltips_html = {}
@@ -79,7 +80,7 @@ app.layout = dbc.Container(
                                                 id="sample-file-dropdown",
                                                 options=[
                                                     {"label": f.name, "value": str(f)}
-                                                    for f in Path("data/sample").glob("*.zip")
+                                                    for f in SAMPLE_FOLDER.glob("*.zip")
                                                 ],
                                                 placeholder="Choose sample dataset...",
                                                 style={"width": "100%", "marginBottom": "33px"},
@@ -766,22 +767,16 @@ app.layout = dbc.Container(
 )
 def handle_file_selection(active_tab, upload_contents, upload_filename, sample_path, sample_filename):
     """
-    Handle both sample file selection and user uploads based on the active tab.
-    Copies or decodes the selected ZIP into UPLOAD_FOLDER and updates readiness
-    flags, while preserving the previously selected or uploaded file from the
-    inactive tab.
+    Handle both sample selection and user uploads depending on the active tab.
+    No file copying is needed for samples since they are served directly
+    from the static/sample folder.
     """
-    # sample tab: copy paste sample file if not done already
+    # sample tab: simply register the selected sample file
     if active_tab == "tab-sample":
         if sample_path:
             sample_basename = os.path.basename(sample_path)
-            dest_path = os.path.join(UPLOAD_FOLDER, sample_basename)
-            if not os.path.exists(dest_path):
-                shutil.copy(sample_path, dest_path)
             return True, upload_filename, sample_basename
-        else:
-            # no sample file selected or selection is cleared
-            return upload_filename is not None, upload_filename, None
+        return upload_filename is not None, upload_filename, None
 
     # upload tab: upload file if not uploaded yet
     elif active_tab == "tab-upload" and upload_contents and upload_filename:
@@ -819,10 +814,12 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         if not upload_filename:
             raise PreventUpdate
         filename = upload_filename
+        input_folder = UPLOAD_FOLDER
     elif active_tab == "tab-sample":
         if not sample_filename:
             raise PreventUpdate
         filename = sample_filename
+        input_folder = SAMPLE_FOLDER
 
     # initialize progress data
     progress_state["pct"] = 0
@@ -831,7 +828,14 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
     progress_state["show-dots"] = True
     progress_state["dot-count"] = 0
 
-    zip_file_path = os.path.join(UPLOAD_FOLDER, filename)
+    zip_file_path = os.path.join(input_folder, filename)
+    zip_base_name = os.path.splitext(filename)[0]
+    out_folder = os.path.join(OUTPUT_FOLDER, f"{zip_base_name} Files")
+    out_folder_url = os.path.relpath(out_folder, start="app")
+
+    # Recreate output folder
+    shutil.rmtree(out_folder, ignore_errors=True)
+    os.makedirs(out_folder, exist_ok=True)
 
     def worker():
         progress_state["status"] = "running"
@@ -850,14 +854,15 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         all_nodes = all_nodes.to_crs(epsg=4326)
         all_gpx = all_gpx.to_crs(epsg=4326)
 
-        segments_file_path = os.path.join(STATIC_FOLDER, "all_matched_segments_wgs84.geojson")
-        nodes_file_path = os.path.join(STATIC_FOLDER, "all_matched_nodes_wgs84.geojson")
-        gpx_file_path = os.path.join(STATIC_FOLDER, "all_gpx_wgs84.geojson")
+        segments_file_path = os.path.join(out_folder, f"{zip_base_name} matched segments.geojson")
+        nodes_file_path = os.path.join(out_folder, f"{zip_base_name} matched nodes.geojson")
+        gpx_file_path = os.path.join(out_folder, f"{zip_base_name} tracks.geojson")
         all_segments.to_file(segments_file_path, driver="GeoJSON")
         all_nodes.to_file(nodes_file_path, driver="GeoJSON")
         all_gpx.to_file(gpx_file_path, driver="GeoJSON")
 
-        zip_name = create_result_zip(segments_file_path, nodes_file_path, gpx_file_path)
+        zip_name = create_result_zip(zip_base_name, segments_file_path, 
+                                     nodes_file_path, gpx_file_path)
 
         # Calculate range for year range slider
         track_date_years = {
@@ -873,7 +878,7 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
             "nodes": all_nodes.__geo_interface__,
             "gpx": all_gpx.__geo_interface__,
             # must be relative to app root here for Dash download link
-            "download_href": os.path.join("static", zip_name),
+            "download_href": os.path.join(out_folder_url, zip_name),
             "track_date_years": track_date_years,
         }
 

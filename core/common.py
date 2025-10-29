@@ -2,11 +2,14 @@
 import geopandas as gpd
 import pandas as pd
 import os
+from app.utils import Path
 
 # ---------- Constants ----------
 # files and folders
 UPLOAD_FOLDER = "app/uploads"
 STATIC_FOLDER = "app/static"
+SAMPLE_FOLDER = Path(STATIC_FOLDER) / 'sample'
+OUTPUT_FOLDER = os.path.join(STATIC_FOLDER, 'output')
 
 # geoprocessing
 OUTPUT_FOLDER_FULL = 'data/processed/full'
