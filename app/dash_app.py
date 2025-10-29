@@ -21,6 +21,7 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 # --- module-level state ---
 _tooltips_html = {}
 _processing_thread = None
+_stop_event = threading.Event()
 
 # --- load data ---
 if os.getenv("RENDER") == "true":
@@ -122,11 +123,29 @@ app.layout = dbc.Container(
                         style={"marginBottom": "5px"},
                     ),
 
-                    dbc.Button(
-                        "Process ZIP", 
-                        id="btn-process", 
-                        color="primary",
-                        className="mb-3"
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                dbc.Button(
+                                    "Process Workbook",
+                                    id="btn-process",
+                                    color="primary",
+                                    className="mb-3",
+                                ),
+                                width="auto",
+                            ),
+                            dbc.Col(
+                                dbc.Button(
+                                    "Cancel",
+                                    id="btn-cancel",
+                                    color="secondary",
+                                    className="mb-3 ms-2",
+                                    style={"visibility": "hidden"},
+                                ),
+                                width="auto",
+                            ),
+                        ],
+                        className="g-0",  # no gutter spacing
                     ),
 
                     dbc.Progress(
@@ -839,14 +858,19 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
 
     def worker():
         progress_state["status"] = "running"
-        all_segments, all_nodes, all_gpx, message = \
-            process_gpx_zip(zip_file_path, bike_network_seg, bike_network_node)
+        all_segments, all_nodes, all_gpx, msg = \
+            process_gpx_zip(zip_file_path, bike_network_seg, 
+                            bike_network_node, _stop_event)
 
         # Early exit if any DataFrame is empty (indicating an issue)
         if any(df.empty for df in [all_segments, all_nodes, all_gpx]):
-            progress_state["current-task"] = f"Processing failed for {filename}: {message}"
+            if msg == "Cancelled":
+                progress_state["current-task"] = f"Processing cancelled for {filename}"
+                progress_state["status"] = "cancelled"
+            else:
+                progress_state["current-task"] = f"Processing failed for {filename}: {msg}"
+                progress_state["status"] = "exited"
             progress_state["pct"] = 100
-            progress_state["status"] = "exited"
             return
 
         # Reproject all GeoDataFrames to WGS84 (EPSG:4326) for export and mapping
@@ -889,7 +913,8 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         progress_state["finished_at"] = time.time()   
 
     # assign to the module-level variable, not a new local variable
-    global _processing_thread
+    global _processing_thread, _stop_event
+    _stop_event.clear()
     _processing_thread = threading.Thread(target=worker)
     _processing_thread.start()
 
@@ -913,8 +938,11 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
     Output("year-slider", "min"),
     Output("year-slider", "max"),
     Output("year-slider", "value"),
+    Output("btn-cancel", "style"),
+    Output("btn-cancel", "disabled"),
     Input("progress-poller", "n_intervals"), # initially None
     Input("processing-started", "data"), # will (re)activate the poller
+    Input("btn-cancel", "n_clicks"),
     State("file-tabs", "active_tab"),
     prevent_initial_call=True
 )
@@ -939,13 +967,37 @@ def update_progress(*args):
     style = {"width": "40%", "visibility": "hidden"}
     finished_at = progress_state.get("finished_at")
     status = progress_state.get("status")
+    style_cancel = {"visibility": "visible"}
     poller_disabled = False
+    cancel_disabled = False
     store_data, min_year, max_year, slider_val = (no_update,) * 4
     upload_tab_disabled = (active_tab == "tab-sample")
     sample_tab_disabled = not upload_tab_disabled
 
-    # Handle completion
-    if status == "exited":
+    # Handle cancel button click
+    trigger_ids = [t["prop_id"].split(".")[0] for t in ctx.triggered]
+    if "btn-cancel" in trigger_ids:
+        global _processing_thread, _stop_event
+
+        # Signal the worker thread to stop and wait briefly for it to exit
+        if _processing_thread and _processing_thread.is_alive():
+            _stop_event.set()
+            _processing_thread.join(timeout=3)
+            if _processing_thread.is_alive():
+                print("Warning: background thread still running after timeout.")
+                # only persist progress state if still running
+                progress_state["status"] = "cancelling"
+                progress_state["show_dots"] = True
+            else:
+                print("Background thread stopped cleanly after cancel request.")
+        else:
+            print("No active background thread to cancel.")
+
+        # display a temporary 'cancelling' status
+        current_task = "Cancelling..."
+        cancel_disabled = True
+
+    if status in ("exited", "cancelled"):
         # Early exit → reset immediately
         pct = 0
         label = ""
@@ -953,12 +1005,18 @@ def update_progress(*args):
         btn_disabled = False
         upload_tab_disabled = False
         sample_tab_disabled = False
+        style_cancel = {"visibility": "hidden"}
+    elif status == "cancelling":
+        # persist cancelling status until worker stops (for slow environments)
+        current_task = "Cancelling" + dots
+        cancel_disabled = True
     elif status == "finished":
         # Normal completion
         store_data = progress_state.get("store_data")
         min_year = store_data["track_date_years"]["min"]
         max_year = store_data["track_date_years"]["max"]
         slider_val = [min_year, max_year]
+        style_cancel = {"visibility": "hidden"}
         # Wait 3s before progress bar reset
         if time.time() - finished_at >= 3:
             pct = 0
@@ -986,7 +1044,9 @@ def update_progress(*args):
         sample_tab_disabled,
         min_year,
         max_year,
-        slider_val
+        slider_val,
+        style_cancel,
+        cancel_disabled,
     )
 
 @app.callback(
