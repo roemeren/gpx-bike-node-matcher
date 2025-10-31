@@ -1070,7 +1070,6 @@ def update_progress(*args):
             pct = 0
             label = ""
             poller_disabled = True
-            progress_data[user_id].pop("finished_at", None)
             btn_disabled = False
             style["visibility"] = "visible"
             upload_tab_disabled = False
