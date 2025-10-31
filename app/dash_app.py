@@ -12,6 +12,7 @@ import dash_leaflet as dl
 from dash.exceptions import PreventUpdate
 from dash import callback_context as ctx
 import time
+import uuid
 
 # --- initialize folders ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
@@ -20,8 +21,8 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # --- module-level state ---
 _tooltips_html = {}
-_processing_thread = None
-_stop_event = threading.Event()
+_processing_threads = {}
+_stop_events = {}
 
 # --- load data ---
 if os.getenv("RENDER") == "true":
@@ -316,6 +317,8 @@ app.layout = dbc.Container(
                     dcc.Store(id="geojson-store-filtered", data={}),
                     # store selected sample file
                     dcc.Store(id="sample-file-store", data={}),
+                    # store session info
+                    dcc.Store(id="session-id"),
                 ],
                 # left panel width: around 2.5/12 (22%)
                 width = "auto",
@@ -774,6 +777,21 @@ app.layout = dbc.Container(
 
 # ---------- Callbacks ----------
 @app.callback(
+    Output("session-id", "data"),
+    Input("session-id", "data"),
+)
+def assign_session_id(current_id):
+    """Assign a unique session ID per browser tab.
+
+    Generates a new UUID when the page first loads, ensuring each user
+    (or tab) gets an isolated session context instead of sharing a
+    global ID across all connections.
+    """
+    if not current_id:
+        return str(uuid.uuid4())
+    raise PreventUpdate
+
+@app.callback(
     Output("file-ready", "data"),
     Output("upload-zip", "filename"),
     Output("sample-file-store", "data"),
@@ -782,9 +800,11 @@ app.layout = dbc.Container(
     State("upload-zip", "filename"),
     Input("sample-file-dropdown", "value"),
     State("sample-file-store", "data"),
+    State("session-id", "data"),
     prevent_initial_call=True
 )
-def handle_file_selection(active_tab, upload_contents, upload_filename, sample_path, sample_filename):
+def handle_file_selection(active_tab, upload_contents, upload_filename, 
+                          sample_path, sample_filename, user_id):
     """
     Handle both sample selection and user uploads depending on the active tab.
     No file copying is needed for samples since they are served directly
@@ -799,7 +819,9 @@ def handle_file_selection(active_tab, upload_contents, upload_filename, sample_p
 
     # upload tab: upload file if not uploaded yet
     elif active_tab == "tab-upload" and upload_contents and upload_filename:
-        dest_path = os.path.join(UPLOAD_FOLDER, upload_filename)
+        user_upload_folder = os.path.join(UPLOAD_FOLDER, user_id)
+        os.makedirs(user_upload_folder, exist_ok=True)
+        dest_path = os.path.join(user_upload_folder, upload_filename)
         if not os.path.exists(dest_path):
             _, content_string = upload_contents.split(",")
             decoded = base64.b64decode(content_string)
@@ -817,9 +839,11 @@ def handle_file_selection(active_tab, upload_contents, upload_filename, sample_p
     State("sample-file-store", "data"),
     State("file-ready", "data"),
     State("file-tabs", "active_tab"),
+    State("session-id", "data"),
     prevent_initial_call=True
 )
-def start_processing(_, upload_filename, sample_filename, file_ready, active_tab):
+def start_processing(_, upload_filename, sample_filename, file_ready, 
+                     active_tab, user_id):
     """
     Triggered by the 'Process ZIP' button.
     Decides which file (uploaded or sample) to process based on the active tab.
@@ -841,36 +865,44 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         input_folder = SAMPLE_FOLDER
 
     # initialize progress data
-    progress_state["pct"] = 0
-    progress_state["current-task"] = f"Preparing to process {filename}"
-    progress_state["previous-task"] = ""
-    progress_state["show-dots"] = True
-    progress_state["dot-count"] = 0
+    progress_data[user_id] = {
+        "pct": 0,
+        "current_task": f"Preparing to process {filename}",
+        "previous_task": "",
+        "show_dots": True,
+        "dot_count": 0,
+    }
 
     zip_file_path = os.path.join(input_folder, filename)
     zip_base_name = sanitize_filename(os.path.splitext(filename)[0])
-    out_folder = os.path.join(OUTPUT_FOLDER, f"{zip_base_name}")
+    out_folder = os.path.join(OUTPUT_FOLDER, user_id, f"{zip_base_name}")
     out_folder_url = os.path.relpath(out_folder, start="app")
 
-    # Recreate output folder
+    # Recreate output folder if reprocessing within the same session
     shutil.rmtree(out_folder, ignore_errors=True)
     os.makedirs(out_folder, exist_ok=True)
 
     def worker():
-        progress_state["status"] = "running"
+        progress_data[user_id]["status"] = "running"
         all_segments, all_nodes, all_gpx, msg = \
-            process_gpx_zip(zip_file_path, bike_network_seg, 
-                            bike_network_node, _stop_event)
+            process_gpx_zip(
+                zip_file_path, 
+                out_folder,
+                bike_network_seg, 
+                bike_network_node, 
+                _stop_events[user_id], 
+                user_id
+            )
 
         # Early exit if any DataFrame is empty (indicating an issue)
         if any(df.empty for df in [all_segments, all_nodes, all_gpx]):
             if msg == "Cancelled":
-                progress_state["current-task"] = f"Processing cancelled for {filename}"
-                progress_state["status"] = "cancelled"
+                progress_data[user_id]["current_task"] = f"Processing cancelled for {filename}"
+                progress_data[user_id]["status"] = "cancelled"
             else:
-                progress_state["current-task"] = f"Processing failed for {filename}: {msg}"
-                progress_state["status"] = "exited"
-            progress_state["pct"] = 100
+                progress_data[user_id]["current_task"] = f"Processing failed for {filename}: {msg}"
+                progress_data[user_id]["status"] = "exited"
+            progress_data[user_id]["pct"] = 100
             return
 
         # Reproject all GeoDataFrames to WGS84 (EPSG:4326) for export and mapping
@@ -897,7 +929,7 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
         }
 
         # Store all processed data for the frontend
-        progress_state["store_data"] = {
+        progress_data[user_id]["store_data"] = {
             "segments": all_segments.__geo_interface__,
             "nodes": all_nodes.__geo_interface__,
             "gpx": all_gpx.__geo_interface__,
@@ -906,17 +938,29 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
             "track_date_years": track_date_years,
         }
 
-        progress_state["pct"] = 100
-        progress_state["current-task"] = f"Finished processing {filename}"
+        progress_data[user_id]["pct"] = 100
+        progress_data[user_id]["current_task"] = f"Finished processing {filename}"
         # store timestamp for deactivation of polling
-        progress_state["status"] = "finished"
-        progress_state["finished_at"] = time.time()   
+        progress_data[user_id]["status"] = "finished"
+        progress_data[user_id]["finished_at"] = time.time()   
 
-    # assign to the module-level variable, not a new local variable
-    global _processing_thread, _stop_event
-    _stop_event.clear()
-    _processing_thread = threading.Thread(target=worker)
-    _processing_thread.start()
+    # make sure we have an event for this user
+    if user_id not in _stop_events:
+        _stop_events[user_id] = threading.Event()
+    else:
+        # if user reruns: make sure previous stop is cleared
+        _stop_events[user_id].clear()
+
+    # create and start user-specific worker
+    t = threading.Thread(
+        target=worker,
+        # won't block app when stopped/restarted (silently killed)
+        daemon=True,
+    )
+    t.start()
+    _processing_threads[user_id] = t
+
+    print(f"Processing started for user {user_id}")
 
     # no data returned but store write action will trigger update_progress
     return True
@@ -944,29 +988,31 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
     Input("processing-started", "data"), # will (re)activate the poller
     Input("btn-cancel", "n_clicks"),
     State("file-tabs", "active_tab"),
+    State("session-id", "data"),
     prevent_initial_call=True
 )
 def update_progress(*args):
     # Get active tab
-    active_tab = args[-1]
+    active_tab = args[-2]
+    user_id = args[-1]
 
     # Animate dots
-    current_task = progress_state.get("current-task", "")
-    prev_task = progress_state.get("previous-task", "")
-    progress_state["dot-count"] = 0 if current_task != prev_task \
-        else (progress_state.get("dot-count", 0) + 1) % 4
-    progress_state["previous-task"] = current_task
-    dots = "." * progress_state["dot-count"] if progress_state.get("show-dots") else ""
+    current_task = progress_data[user_id].get("current_task", "")
+    prev_task = progress_data[user_id].get("previous_task", "")
+    progress_data[user_id]["dot_count"] = 0 if current_task != prev_task \
+        else (progress_data[user_id].get("dot_count", 0) + 1) % 4
+    progress_data[user_id]["previous_task"] = current_task
+    dots = "." * progress_data[user_id]["dot_count"] if progress_data[user_id].get("show_dots") else ""
     current_task += dots
 
     # Base UI state while processing
-    pct = progress_state.get("pct", 0)
+    pct = progress_data[user_id].get("pct", 0)
     label = f"{pct}%" if pct >= 5 else ""
     btn_disabled = True
-    href = progress_state.get("store_data", {}).get("download_href")
+    href = progress_data[user_id].get("store_data", {}).get("download_href")
     style = {"width": "40%", "visibility": "hidden"}
-    finished_at = progress_state.get("finished_at")
-    status = progress_state.get("status")
+    finished_at = progress_data[user_id].get("finished_at")
+    status = progress_data[user_id].get("status")
     style_cancel = {"visibility": "visible"}
     poller_disabled = False
     cancel_disabled = False
@@ -977,21 +1023,20 @@ def update_progress(*args):
     # Handle cancel button click
     trigger_ids = [t["prop_id"].split(".")[0] for t in ctx.triggered]
     if "btn-cancel" in trigger_ids:
-        global _processing_thread, _stop_event
-
-        # Signal the worker thread to stop and wait briefly for it to exit
-        if _processing_thread and _processing_thread.is_alive():
-            _stop_event.set()
-            _processing_thread.join(timeout=3)
-            if _processing_thread.is_alive():
-                print("Warning: background thread still running after timeout.")
-                # only persist progress state if still running
-                progress_state["status"] = "cancelling"
-                progress_state["show_dots"] = True
+        t = _processing_threads.get(user_id)
+        ev = _stop_events.get(user_id)
+        if t and t.is_alive():
+            if ev:
+                ev.set()
+            t.join(timeout=3)
+            if t.is_alive():
+                print(f"[{user_id[:8]}] Warning: background thread still running after timeout.")
+                progress_data[user_id]["status"] = "cancelling"
+                progress_data[user_id]["show_dots"] = True
             else:
-                print("Background thread stopped cleanly after cancel request.")
+                print(f"[{user_id[:8]}] Thread stopped cleanly after cancel request.")
         else:
-            print("No active background thread to cancel.")
+            print(f"[{user_id[:8]}] No active thread to cancel.")
 
         # display a temporary 'cancelling' status
         current_task = "Cancelling..."
@@ -1006,13 +1051,16 @@ def update_progress(*args):
         upload_tab_disabled = False
         sample_tab_disabled = False
         style_cancel = {"visibility": "hidden"}
+        # Clean up finished or cancelled threads/events
+        _processing_threads.pop(user_id, None)
+        _stop_events.pop(user_id, None)
     elif status == "cancelling":
         # persist cancelling status until worker stops (for slow environments)
         current_task = "Cancelling" + dots
         cancel_disabled = True
     elif status == "finished":
         # Normal completion
-        store_data = progress_state.get("store_data")
+        store_data = progress_data[user_id].get("store_data")
         min_year = store_data["track_date_years"]["min"]
         max_year = store_data["track_date_years"]["max"]
         slider_val = [min_year, max_year]
@@ -1022,11 +1070,14 @@ def update_progress(*args):
             pct = 0
             label = ""
             poller_disabled = True
-            progress_state.pop("finished_at", None)
+            progress_data[user_id].pop("finished_at", None)
             btn_disabled = False
             style["visibility"] = "visible"
             upload_tab_disabled = False
             sample_tab_disabled = False
+            # Clean up after successful completion
+            _processing_threads.pop(user_id, None)
+            _stop_events.pop(user_id, None)
 
     return (
         pct,

@@ -15,7 +15,7 @@ PARALLEL_MIN_CORES = 2
 DEFAULT_MAX_WORKERS = 8
 
 # --- application parameters ---
-progress_state = {}
+progress_data = {}
 
 # --- helper function at module level (picklable) ---
 def parse_single_gpx(gpx_file, zip_folder):
@@ -80,7 +80,8 @@ def parse_single_gpx(gpx_file, zip_folder):
     return tracks_data if tracks_data else None
 
 # --- main function ---
-def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
+def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf, 
+                    stop_event=None, user_id=None):
     """
     Process a ZIP archive of GPX files and match tracks with a bike network.
 
@@ -88,17 +89,22 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     buffers them, calculates overlap with the bike network segments, filters
     segments exceeding the overlap threshold, and extracts corresponding bike nodes.
 
-    Progress updates are written to `progress_state` throughout the steps.
+    Progress updates are written to `progress_data` throughout the steps.
 
     Uses sequential parsing for a small number of files and parallel parsing
     for larger ZIPs to improve performance.
 
     Args:
         zip_file_path (str): Path to the ZIP file containing GPX files.
+        output_folder (str): Directory where output files will be saved
+            if not running as an executable. Defaults to None.
         bike_network (GeoDataFrame): GeoDataFrame of bike network segments.
         point_geodf (GeoDataFrame): GeoDataFrame of bike nodes.
         stop_event (threading.Event, optional): Signal used for cooperative 
             cancellation. When set, processing stops gracefully. Defaults to None.
+        user_id (str, optional): Unique session or user identifier used to isolate
+            per-user processing state, progress tracking, and output paths when 
+            running in a multi-user environment. Defaults to None.
 
     Returns:
         tuple:
@@ -121,8 +127,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     empty = gpd.GeoDataFrame()
 
     # --- unzip ---
-    zip_base_name = sanitize_filename(os.path.splitext(os.path.basename(zip_file_path))[0])
-    zip_folder = os.path.join(OUTPUT_FOLDER, f"{zip_base_name}", "temp")
+    zip_folder = os.path.join(out_folder, "temp")
     shutil.rmtree(zip_folder, ignore_errors=True)
     os.makedirs(zip_folder, exist_ok=True)
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
@@ -136,7 +141,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     if total_files == 0:
         message = "No GPX files found in the uploaded ZIP. \
             Please upload a ZIP containing one or more GPX files."
-        progress_state["pct"] = 100
+        progress_data[user_id]["pct"] = 100
         return empty, empty, empty, message
 
     # --- parse GPX files ---
@@ -154,9 +159,9 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
         # Sequential parsing
         for i, gpx_file in enumerate(gpx_files, start=1):
             if check_cancel(): return empty, empty, empty, "Cancelled"
-            progress_state["show-dots"] = False
-            progress_state["current-task"] = f"Parsing GPX files: {i}/{total_files}"
-            progress_state["pct"] = round(i / total_files * 50)
+            progress_data[user_id]["show-dots"] = False
+            progress_data[user_id]["current-task"] = f"Parsing GPX files: {i}/{total_files}"
+            progress_data[user_id]["pct"] = round(i / total_files * 50)
             results = parse_single_gpx(gpx_file, zip_folder)   # list of dicts
             if results:
                 gpx_rows.extend(results)
@@ -178,30 +183,30 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
                 results = future.result()
                 if results:
                     gpx_rows.extend(results)
-                progress_state["current-task"] = f"Parsing GPX files (parallel): {i}/{total_files}"
-                progress_state["pct"] = round(i / total_files * 50)
+                progress_data[user_id]["current-task"] = f"Parsing GPX files (parallel): {i}/{total_files}"
+                progress_data[user_id]["pct"] = round(i / total_files * 50)
 
     # remove unzip folder
     shutil.rmtree(zip_folder)
 
     if not gpx_rows:
         message = "No valid GPX data found. Please upload a different file."
-        progress_state["pct"] = 100
+        progress_data[user_id]["pct"] = 100
         return empty, empty, empty, message
 
     all_gpx_gdf = gpd.GeoDataFrame(gpx_rows, crs="EPSG:4326")
 
     # --- reproject ---
-    progress_state["show-dots"] = True
-    progress_state["current-task"] = f"Reprojecting GPX geometries to EPSG:{EPSG_PROJECTED}"
+    progress_data[user_id]["show-dots"] = True
+    progress_data[user_id]["current-task"] = f"Reprojecting GPX geometries to EPSG:{EPSG_PROJECTED}"
     if check_cancel(): return empty, empty, empty, "Cancelled"
-    progress_state["pct"] = 55
+    progress_data[user_id]["pct"] = 55
     all_gpx_gdf = all_gpx_gdf.to_crs(epsg=EPSG_PROJECTED)
 
     # --- simplify & buffer GPX geometries---
-    progress_state["current-task"] = "Buffering GPX geometries"
+    progress_data[user_id]["current-task"] = "Buffering GPX geometries"
     if check_cancel(): return empty, empty, empty, "Cancelled"
-    progress_state["pct"] = 60
+    progress_data[user_id]["pct"] = 60
     all_gpx_gdf['geometry'] = all_gpx_gdf['geometry'].simplify(
         tolerance=SIMPLIFY_TOLERANCE_M/2, preserve_topology=True
     )
@@ -209,9 +214,9 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     gpx_buffers = all_gpx_gdf.set_geometry("buffer_geom")
 
     # --- spatial join: find all segments that intersect each GPX track buffer ---
-    progress_state["current-task"] = "Matching GPX tracks with bike node network"
+    progress_data[user_id]["current-task"] = "Matching GPX tracks with bike node network"
     if check_cancel(): return empty, empty, empty, "Cancelled"
-    progress_state["pct"] = 65
+    progress_data[user_id]["pct"] = 65
     joined = gpd.sjoin(
         bike_network,
         gpx_buffers[["gpx_name", "track_name", "track_date", "track_uid", "buffer_geom"]],
@@ -222,7 +227,7 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     if joined.empty:
         message = "No GPX tracks matched the bike node network. \
             Please verify your routes and try again."
-        progress_state["pct"] = 100
+        progress_data[user_id]["pct"] = 100
         return empty, empty, empty, message
 
     joined = joined.reset_index()
@@ -234,9 +239,9 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     )
 
     # --- intersection lengths: compute segment overlap with each GPX track buffer ---
-    progress_state["current-task"] = "Calculating intersection lengths"
+    progress_data[user_id]["current-task"] = "Calculating intersection lengths"
     if check_cancel(): return empty, empty, empty, "Cancelled"
-    progress_state["pct"] = 75
+    progress_data[user_id]["pct"] = 75
     joined["segment_length"] = joined.geometry.length
     joined["intersection_geom"] = joined.geometry.intersection(joined["buffer_geom"])
     joined["intersection_length"] = joined["intersection_geom"].length.fillna(0)
@@ -259,12 +264,12 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     if all_segments.empty:
         message = "No GPX tracks met the matching threshold. \
             Partial overlaps were detected but not sufficient for valid matches.."
-        progress_state["pct"] = 100
+        progress_data[user_id]["pct"] = 100
         return empty, empty, empty, message
 
     # --- matched nodes ---
-    progress_state["current-task"] = "Extracting matched bike nodes"
-    progress_state["pct"] = 90
+    progress_data[user_id]["current-task"] = "Extracting matched bike nodes"
+    progress_data[user_id]["pct"] = 90
     nodes_list = []
     for (gpx_name, track_name, track_date, track_uid), grp in all_segments.groupby(
         ["gpx_name", "track_name", "track_date", "track_uid"]
@@ -292,10 +297,10 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
         )
     )
 
-    progress_state["show-dots"] = False
-    progress_state["current-task"] = "All GPX files processed successfully"
+    progress_data[user_id]["show-dots"] = False
+    progress_data[user_id]["current-task"] = "All GPX files processed successfully"
     if check_cancel(): return empty, empty, empty, "Cancelled"
-    progress_state["pct"] = 100
+    progress_data[user_id]["pct"] = 100
 
     all_gpx_gdf = all_gpx_gdf.drop(columns="buffer_geom")
     all_gpx_gdf["track_length"] = all_gpx_gdf.geometry.length / 1000.0
