@@ -857,7 +857,7 @@ def start_processing(_, upload_filename, sample_filename, file_ready,
         if not upload_filename:
             raise PreventUpdate
         filename = upload_filename
-        input_folder = UPLOAD_FOLDER
+        input_folder = os.path.join(UPLOAD_FOLDER, user_id)
     elif active_tab == "tab-sample":
         if not sample_filename:
             raise PreventUpdate
@@ -873,7 +873,7 @@ def start_processing(_, upload_filename, sample_filename, file_ready,
         "dot_count": 0,
     }
 
-    zip_file_path = os.path.join(input_folder, user_id, filename)
+    zip_file_path = os.path.join(input_folder, filename)
     zip_base_name = sanitize_filename(os.path.splitext(filename)[0])
     out_folder = os.path.join(OUTPUT_FOLDER, user_id, f"{zip_base_name}")
     out_folder_url = os.path.relpath(out_folder, start="app")
