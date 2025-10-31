@@ -28,11 +28,10 @@ To try it out:
 3. Explore the results in the dashboard and on the interactive map.  
 4. Download the processed outputs as a ZIP file when finished.
 
-> ⚠️ **Note**  
-> The hosted version currently includes **only the Belgian bike node network** due to memory limits on the free Render tier.  Performance may be slower for larger uploads 🐢.  
->
-> For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
 
+The hosted version currently includes **only the Belgian bike node network** due to memory limits on the free Render tier.  Performance may be slower for larger uploads 🐢.  
+
+For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
 
 ---
 
@@ -44,7 +43,7 @@ To try it out:
 
 ### Upload and process GPX files
 
-- Upload a ZIP file containing one or more GPX files (each GPX can include multiple tracks, *item 1 on the screenshot*)
+- Select one of the sample files or upload a ZIP file containing one or more GPX files (each GPX can include multiple tracks, *item 1 on the screenshot*)
 
 - Click **Process ZIP** to match your GPX tracks against the bike node network (*item 2 on the screenshot*).
 
@@ -69,7 +68,7 @@ To try it out:
 
 ### Inspect individual tracks
 
-- Zoom into individual tracks by activating the Track Focus option in the dashboard controls, and compare them with their matched nodes and segments on the map *(item 9 in the screenshot)*.
+- Zoom into individual tracks by activating the **Track Focus** option in the dashboard controls, and compare them with their matched nodes and segments on the map *(item 9 in the screenshot)*.
 
 ![Inspect individual tracks](assets/images/04-analyze-tracks.png)
 
@@ -130,8 +129,8 @@ For details on how the underlying Geofabrik extracts are downloaded, processed, 
 ### Documentation & Wiki
 
 For more details on:
-- generating **sample GPX data** using OpenRouteService,
-- understanding the **project architecture**,
-- or exploring **developer notes and advanced usage**,
+- understanding the **general project architecture**,
+- how sample GPX data is generated using OpenRouteService,
+- or various technical deep dives on background processing, track matching and more,
 
 visit the [📘 Project Wiki](https://github.com/roemeren/gpx-bike-node-matcher/wiki).
