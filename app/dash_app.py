@@ -848,8 +848,8 @@ def start_processing(_, upload_filename, sample_filename, file_ready, active_tab
     progress_state["dot-count"] = 0
 
     zip_file_path = os.path.join(input_folder, filename)
-    zip_base_name = os.path.splitext(filename)[0]
-    out_folder = os.path.join(OUTPUT_FOLDER, f"{zip_base_name} Files")
+    zip_base_name = sanitize_filename(os.path.splitext(filename)[0])
+    out_folder = os.path.join(OUTPUT_FOLDER, f"{zip_base_name}")
     out_folder_url = os.path.relpath(out_folder, start="app")
 
     # Recreate output folder

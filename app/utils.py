@@ -1,6 +1,7 @@
 from app.constants import *
 from pathlib import Path
 import datetime
+import re
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -176,3 +177,11 @@ def build_coverage_figure(df, agg_level, plot_type, filter_mode):
     )
 
     return fig
+
+def sanitize_filename(filename: str) -> str:
+    """Remove potentially unsafe characters like '#' from filenames."""
+    # Replace unsafe characters with underscores
+    sanitized = re.sub(r'[^A-Za-z0-9._ -]', '_', filename)
+    # Prevent consecutive underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    return sanitized.strip('_ ').strip()

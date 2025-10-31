@@ -1,4 +1,5 @@
 from core.common import *
+from app.utils import sanitize_filename
 from shapely.geometry import Point, LineString, MultiLineString
 import shutil
 import zipfile
@@ -120,8 +121,8 @@ def process_gpx_zip(zip_file_path, bike_network, point_geodf, stop_event=None):
     empty = gpd.GeoDataFrame()
 
     # --- unzip ---
-    zip_basename = os.path.splitext(os.path.basename(zip_file_path))[0]
-    zip_folder = os.path.join(OUTPUT_FOLDER, f"{zip_basename} Files", "temp")
+    zip_base_name = sanitize_filename(os.path.splitext(os.path.basename(zip_file_path))[0])
+    zip_folder = os.path.join(OUTPUT_FOLDER, f"{zip_base_name}", "temp")
     shutil.rmtree(zip_folder, ignore_errors=True)
     os.makedirs(zip_folder, exist_ok=True)
     with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
