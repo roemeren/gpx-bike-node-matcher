@@ -159,8 +159,8 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
         # Sequential parsing
         for i, gpx_file in enumerate(gpx_files, start=1):
             if check_cancel(): return empty, empty, empty, "Cancelled"
-            progress_data[user_id]["show-dots"] = False
-            progress_data[user_id]["current-task"] = f"Parsing GPX files: {i}/{total_files}"
+            progress_data[user_id]["show_dots"] = False
+            progress_data[user_id]["current_task"] = f"Parsing GPX files: {i}/{total_files}"
             progress_data[user_id]["pct"] = round(i / total_files * 50)
             results = parse_single_gpx(gpx_file, zip_folder)   # list of dicts
             if results:
@@ -183,7 +183,7 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
                 results = future.result()
                 if results:
                     gpx_rows.extend(results)
-                progress_data[user_id]["current-task"] = f"Parsing GPX files (parallel): {i}/{total_files}"
+                progress_data[user_id]["current_task"] = f"Parsing GPX files (parallel): {i}/{total_files}"
                 progress_data[user_id]["pct"] = round(i / total_files * 50)
 
     # remove unzip folder
@@ -197,14 +197,14 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
     all_gpx_gdf = gpd.GeoDataFrame(gpx_rows, crs="EPSG:4326")
 
     # --- reproject ---
-    progress_data[user_id]["show-dots"] = True
-    progress_data[user_id]["current-task"] = f"Reprojecting GPX geometries to EPSG:{EPSG_PROJECTED}"
+    progress_data[user_id]["show_dots"] = True
+    progress_data[user_id]["current_task"] = f"Reprojecting GPX geometries to EPSG:{EPSG_PROJECTED}"
     if check_cancel(): return empty, empty, empty, "Cancelled"
     progress_data[user_id]["pct"] = 55
     all_gpx_gdf = all_gpx_gdf.to_crs(epsg=EPSG_PROJECTED)
 
     # --- simplify & buffer GPX geometries---
-    progress_data[user_id]["current-task"] = "Buffering GPX geometries"
+    progress_data[user_id]["current_task"] = "Buffering GPX geometries"
     if check_cancel(): return empty, empty, empty, "Cancelled"
     progress_data[user_id]["pct"] = 60
     all_gpx_gdf['geometry'] = all_gpx_gdf['geometry'].simplify(
@@ -214,7 +214,7 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
     gpx_buffers = all_gpx_gdf.set_geometry("buffer_geom")
 
     # --- spatial join: find all segments that intersect each GPX track buffer ---
-    progress_data[user_id]["current-task"] = "Matching GPX tracks with bike node network"
+    progress_data[user_id]["current_task"] = "Matching GPX tracks with bike node network"
     if check_cancel(): return empty, empty, empty, "Cancelled"
     progress_data[user_id]["pct"] = 65
     joined = gpd.sjoin(
@@ -239,7 +239,7 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
     )
 
     # --- intersection lengths: compute segment overlap with each GPX track buffer ---
-    progress_data[user_id]["current-task"] = "Calculating intersection lengths"
+    progress_data[user_id]["current_task"] = "Calculating intersection lengths"
     if check_cancel(): return empty, empty, empty, "Cancelled"
     progress_data[user_id]["pct"] = 75
     joined["segment_length"] = joined.geometry.length
@@ -268,7 +268,7 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
         return empty, empty, empty, message
 
     # --- matched nodes ---
-    progress_data[user_id]["current-task"] = "Extracting matched bike nodes"
+    progress_data[user_id]["current_task"] = "Extracting matched bike nodes"
     progress_data[user_id]["pct"] = 90
     nodes_list = []
     for (gpx_name, track_name, track_date, track_uid), grp in all_segments.groupby(
@@ -297,8 +297,8 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
         )
     )
 
-    progress_data[user_id]["show-dots"] = False
-    progress_data[user_id]["current-task"] = "All GPX files processed successfully"
+    progress_data[user_id]["show_dots"] = False
+    progress_data[user_id]["current_task"] = "All GPX files processed successfully"
     if check_cancel(): return empty, empty, empty, "Cancelled"
     progress_data[user_id]["pct"] = 100
 
