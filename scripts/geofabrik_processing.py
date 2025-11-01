@@ -377,7 +377,7 @@ def process_osm_data():
     print("[INFO] Enriching multilines with OSM node IDs...")
     gdf_multiline_projected, gdf_point_projected = \
         enrich_with_osm_ids(gdf_multiline_projected, gdf_point_projected, 
-                            BUFFER_DISTANCE_M, NODE_WIDTH, tqdm_params)
+                            BUFFER_DISTANCE_M[0], NODE_WIDTH, tqdm_params)
     print("[INFO] Enrichment completed.")
 
     # --- Keep only nodes used in enriched segments ---
@@ -397,11 +397,13 @@ def process_osm_data():
 
     # Simplify geometry (with tolerance in m) & add segment length
     # Note: only keeping relevant attribute columns doesn't make much difference
-    gdf_multiline_projected['geometry'] = gdf_multiline_projected['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_M, preserve_topology=True)
+    gdf_multiline_projected['geometry'] = gdf_multiline_projected['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_M[0], preserve_topology=True)
     gdf_multiline_projected["length_km"] = gdf_multiline_projected.geometry.length / 1000.0
 
-    # Make separate version for main country only
-    gdf_multiline_projected_main = gdf_multiline_projected[gdf_multiline_projected['is_main_country']]
+    # Make separate version for main country only with lighter settings
+    gdf_multiline_projected_main = gdf_multiline_projected[gdf_multiline_projected['is_main_country']].copy()
+    gdf_multiline_projected_main['geometry'] = \
+        gdf_multiline_projected_main['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_M[1], preserve_topology=True)
     gdf_point_projected_main = gdf_point_projected[gdf_point_projected['is_main_country']]
 
     # Convert the enriched result back to WGS84

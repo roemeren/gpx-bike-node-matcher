@@ -32,7 +32,7 @@ SLIDER_MIN_YEAR=2010
 SLIDER_MAX_YEAR=datetime.datetime.now().year
 
 # App settings
-DEBUG_MODE = True
+DEBUG_MODE = False
 TOOLTIP_DELAY = {"show": 500, "hide": 100}
 REPO_URL = "https://github.com/roemeren/gpx-bike-node-matcher"
 GEOFABRIK_URL = "https://download.geofabrik.de/europe/belgium.html#"

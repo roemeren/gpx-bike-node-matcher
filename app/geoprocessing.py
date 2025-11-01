@@ -203,14 +203,18 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
     progress_data[user_id]["pct"] = 55
     all_gpx_gdf = all_gpx_gdf.to_crs(epsg=EPSG_PROJECTED)
 
-    # --- simplify & buffer GPX geometries---
+    # --- simplify & buffer GPX geometries (use lighter settings on Render)---
+    i = 1 if is_render else 0
+    buffer_dist, tol, preserve_topo = \
+        BUFFER_DISTANCE_M[i], SIMPLIFY_TOLERANCE_M[i]/2, not is_render
+
     progress_data[user_id]["current_task"] = "Buffering GPX geometries"
     if check_cancel(): return empty, empty, empty, "Cancelled"
     progress_data[user_id]["pct"] = 60
     all_gpx_gdf['geometry'] = all_gpx_gdf['geometry'].simplify(
-        tolerance=SIMPLIFY_TOLERANCE_M/2, preserve_topology=True
+        tolerance=tol, preserve_topology=preserve_topo
     )
-    all_gpx_gdf["buffer_geom"] = all_gpx_gdf.geometry.buffer(BUFFER_DISTANCE_M)
+    all_gpx_gdf["buffer_geom"] = all_gpx_gdf.geometry.buffer(buffer_dist)
     gpx_buffers = all_gpx_gdf.set_geometry("buffer_geom")
 
     # --- spatial join: find all segments that intersect each GPX track buffer ---
