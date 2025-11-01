@@ -414,6 +414,8 @@ def process_osm_data():
     # Dissolve all geometries in a GeoDataFrame into one combined geometry
     merged = gdf_multiline.geometry.union_all()
     gdf_multiline = gpd.GeoDataFrame(geometry=[merged], crs=gdf_multiline.crs)
+    merged = gdf_multiline_main.geometry.union_all()
+    gdf_multiline_main = gpd.GeoDataFrame(geometry=[merged], crs=gdf_multiline_main.crs)
 
     # Save the outputs as GeoJSON and parquet for use in the app
     # compared to shapefiles there is no truncation of column names but takes longer
