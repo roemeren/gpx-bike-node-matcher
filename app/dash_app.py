@@ -14,6 +14,10 @@ from dash import callback_context as ctx
 import time
 import uuid
 
+# Check memory usage before processing
+process = psutil.Process(os.getpid())
+print(f"Memory usage after imports: {process.memory_info().rss / 1024**2:.2f} MB")
+
 # --- initialize folders ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -41,18 +45,21 @@ node_path_parquet = Path(folder) / POINT_PROJECTED_PARQUET_NAME
 seg_path_geojson = Path(folder) / MULTILINE_GEOJSON_NAME
 
 bike_network_seg = gpd.read_parquet(seg_path_parquet)
+print(f"Memory usage after loading segment parquet {process.memory_info().rss / 1024**2:.2f} MB")
+
 bike_network_node = gpd.read_parquet(node_path_parquet)
+print(f"Memory usage after loading node parquet {process.memory_info().rss / 1024**2:.2f} MB")
+
 with open(seg_path_geojson , "r") as f:
    geojson_network = json.load(f)
+print(f"Memory usage after loading segment GeoJSON {process.memory_info().rss / 1024**2:.2f} MB")
 
 # --- initialize app ---
 # Themes: see https://www.dash-bootstrap-components.com/docs/themes/explorer/
 app = Dash(__name__, external_stylesheets=[dbc.themes.ZEPHYR])
 server = app.server
 
-# Check memory usage before processing
-process = psutil.Process(os.getpid())
-print(f"Memory usage after initializing application: {process.memory_info().rss / 1024**2:.2f} MB")
+print(f"Memory usage after initializing app: {process.memory_info().rss / 1024**2:.2f} MB")
 
 # ---------- Layout ----------
 app.layout = dbc.Container(
