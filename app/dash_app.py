@@ -16,7 +16,7 @@ import uuid
 
 # Check memory usage before processing
 process = psutil.Process(os.getpid())
-print(f"Memory usage after imports: {process.memory_info().rss / 1024**2:.2f} MB")
+# print(f"Memory usage after imports: {process.memory_info().rss / 1024**2:.2f} MB")
 
 # --- initialize folders ---
 os.makedirs(STATIC_FOLDER, exist_ok=True)
@@ -48,10 +48,10 @@ node_path_parquet = Path(folder) / POINT_PROJECTED_PARQUET_NAME
 seg_path_geojson =  os.path.join("assets", multiline_geojson_gz_name) # must be a plain string
 
 bike_network_seg = gpd.read_parquet(seg_path_parquet)
-print(f"Memory usage after loading segment parquet {process.memory_info().rss / 1024**2:.2f} MB")
+# print(f"Memory usage after loading segment parquet {process.memory_info().rss / 1024**2:.2f} MB")
 
 bike_network_node = gpd.read_parquet(node_path_parquet)
-print(f"Memory usage after loading node parquet {process.memory_info().rss / 1024**2:.2f} MB")
+# print(f"Memory usage after loading node parquet {process.memory_info().rss / 1024**2:.2f} MB")
 
 # --- initialize app ---
 # Themes: see https://www.dash-bootstrap-components.com/docs/themes/explorer/
@@ -1057,9 +1057,10 @@ def update_progress(*args):
         upload_tab_disabled = False
         sample_tab_disabled = False
         style_cancel = {"visibility": "hidden"}
-        # Clean up finished or cancelled threads/events
+        # Clean up per-user session data (threads, events, tooltips, etc.)
         _processing_threads.pop(user_id, None)
         _stop_events.pop(user_id, None)
+        _tooltips_html.pop(user_id, None)
     elif status == "cancelling":
         # persist cancelling status until worker stops (for slow environments)
         current_task = "Cancelling" + dots
@@ -1080,9 +1081,10 @@ def update_progress(*args):
             style["visibility"] = "visible"
             upload_tab_disabled = False
             sample_tab_disabled = False
-            # Clean up after successful completion
+            # Clean up per-user session data (threads, events, tooltips, etc.)
             _processing_threads.pop(user_id, None)
             _stop_events.pop(user_id, None)
+            _tooltips_html.pop(user_id, None)
 
     return (
         pct,
@@ -1258,8 +1260,9 @@ def filter_data(store, date_range):
     Output("layer-segments", "data"),
     Output("layer-track", "data"),
     Input("geojson-store-filtered", "data"),
+    State("session-id", "data"),
 )
-def update_line_layers(filtered_data):
+def update_line_layers(filtered_data, user_id):
     """Render filtered bike segments and GPX tracks on the map."""
     if not filtered_data:
         return None, None
@@ -1268,8 +1271,7 @@ def update_line_layers(filtered_data):
     res_gpx = filtered_data["gpx"]
 
     # add tooltips per unique track
-    global _tooltips_html
-    _tooltips_html = {
+    _tooltips_html[user_id] = {
         feature["properties"]["track_uid"]: make_track_tooltip(feature)
         for feature in res_gpx["features"]
     }
@@ -1605,8 +1607,10 @@ def update_selected_track(layer_click, map_click, checkbox):
     Input("layers-control", "baseLayer"),
     State("layer-track", "hideout"),
     Input("layer-track", "data"),
+    State("session-id", "data"),
 )
-def update_gpx_layer_hideout(selected_id, checkbox_value, base_layer, current_hideout, _):
+def update_gpx_layer_hideout(selected_id, checkbox_value, base_layer, 
+                             current_hideout, _, user_id):
     """Update the GPX layer's hideout dict to control attributes based on current state."""
     # update state container for the layer triggered to control styling
     hideout = dict(current_hideout)
@@ -1616,7 +1620,9 @@ def update_gpx_layer_hideout(selected_id, checkbox_value, base_layer, current_hi
         COLOR_GPX_CARTO_LIGHT if base_layer == "Carto Light" 
         else COLOR_GPX_CARTO_VOYAGER
     )
-    hideout["tooltips"] = _tooltips_html
+    if user_id not in _tooltips_html:
+       _tooltips_html[user_id] = {}
+    hideout["tooltips"] = _tooltips_html[user_id]
     hideout["tooltip_opacity"] = 0.0 if checkbox_value == [] else 0.9
 
     return hideout
