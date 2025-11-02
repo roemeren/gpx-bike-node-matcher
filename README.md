@@ -28,17 +28,15 @@ To try it out:
 3. Explore the results in the dashboard and on the interactive map.  
 4. Download the processed outputs as a ZIP file when finished.
 
+>⚠️ **Note**: This hosted demo is intended for **testing and exploration only**. It does not include authentication or full security measures, so please **avoid uploading sensitive data** such as GPX rides that may reveal private locations.
 
-The hosted version currently includes **only the Belgian bike node network** due to memory limits on the free Render tier.  Performance may be slower for larger uploads 🐢.  
-
-For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
+The hosted version currently includes **only the Belgian bike node network and uses lighter track-matching settings** due to memory limits on the free Render tier. Performance may be slower for larger uploads 🐢. For full coverage (including the Netherlands and cross-border regions) or faster processing, please run the app locally.
 
 ---
 
 ## App Overview
 
-> ⚠️ **Note**  
-> The screenshots below are based on an earlier version of the app, but the overall layout and functionality remain representative of the current version.
+> ⚠️ **Note**: The screenshots below are based on an earlier version of the app, but the overall layout and functionality remain representative of the current version.
 
 
 ### Upload and process GPX files
