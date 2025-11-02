@@ -206,7 +206,7 @@ def process_gpx_zip(zip_file_path, out_folder, bike_network, point_geodf,
     # --- simplify & buffer GPX geometries (use lighter settings on Render)---
     i = 1 if is_render else 0
     buffer_dist, tol, preserve_topo = \
-        BUFFER_DISTANCE_M[i], SIMPLIFY_TOLERANCE_M[i]/2, not is_render
+        BUFFER_DISTANCE_M[i], SIMPLIFY_TOLERANCE_TRACK_M[i], PRESERVE_TOPO[i]
 
     progress_data[user_id]["current_task"] = "Buffering GPX geometries"
     if check_cancel(): return empty, empty, empty, "Cancelled"

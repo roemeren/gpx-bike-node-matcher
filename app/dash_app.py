@@ -32,27 +32,26 @@ _stop_events = {}
 if os.getenv("RENDER") == "true":
     # use 'lite' version of the app containing only the Belgian network
     folder = OUTPUT_FOLDER_LITE
+    multiline_geojson_gz_name = MULTILINE_GEOJSON_GZ_NAME_LITE
     app_header = "Belgian Bike Node Network Matcher"
     app_descr = "Upload a zip file with your GPX rides to see how they align with Belgium’s bike node network."
+    
 else:
     # use full version of the app using the full network
     folder = OUTPUT_FOLDER_FULL
+    multiline_geojson_gz_name = MULTILINE_GEOJSON_GZ_NAME_FULL
     app_header = "Bike Node Network Matcher"
     app_descr = "Upload a ZIP file with your GPX rides to see how they align with the Belgian and Dutch bike node networks.",
 
 seg_path_parquet =  Path(folder) / MULTILINE_PROJECTED_PARQUET_NAME
 node_path_parquet = Path(folder) / POINT_PROJECTED_PARQUET_NAME
-seg_path_geojson = Path(folder) / MULTILINE_GEOJSON_NAME
+seg_path_geojson =  os.path.join("assets", multiline_geojson_gz_name) # must be a plain string
 
 bike_network_seg = gpd.read_parquet(seg_path_parquet)
 print(f"Memory usage after loading segment parquet {process.memory_info().rss / 1024**2:.2f} MB")
 
 bike_network_node = gpd.read_parquet(node_path_parquet)
 print(f"Memory usage after loading node parquet {process.memory_info().rss / 1024**2:.2f} MB")
-
-with open(seg_path_geojson , "r") as f:
-   geojson_network = json.load(f)
-print(f"Memory usage after loading segment GeoJSON {process.memory_info().rss / 1024**2:.2f} MB")
 
 # --- initialize app ---
 # Themes: see https://www.dash-bootstrap-components.com/docs/themes/explorer/
@@ -527,9 +526,9 @@ app.layout = dbc.Container(
                                         ]
                                         + [
                                             dl.Overlay(
-                                                # Preloaded network layer (initially hidden)
+                                                # Preloaded network layer (served directly from assets to save RAM)
                                                 dl.GeoJSON(
-                                                    data=geojson_network,
+                                                    url=seg_path_geojson,
                                                     id='geojson-network',
                                                     options=dict(style=dict(color=COLOR_NETWORK, weight=1, opacity=0.6))
                                                 ), 

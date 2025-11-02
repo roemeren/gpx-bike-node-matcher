@@ -2,6 +2,7 @@ import ssl  # import before fiona to avoid SSL issues on Windows
 import platform
 import subprocess
 import fiona
+import gzip
 from pathlib import Path
 from scripts.geofabrik_date import *
 from core.common import *
@@ -397,13 +398,13 @@ def process_osm_data():
 
     # Simplify geometry (with tolerance in m) & add segment length
     # Note: only keeping relevant attribute columns doesn't make much difference
-    gdf_multiline_projected['geometry'] = gdf_multiline_projected['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_M[0], preserve_topology=True)
+    gdf_multiline_projected['geometry'] = gdf_multiline_projected['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_NETWORK_M[0], preserve_topology=True)
     gdf_multiline_projected["length_km"] = gdf_multiline_projected.geometry.length / 1000.0
 
     # Make separate version for main country only with lighter settings
     gdf_multiline_projected_main = gdf_multiline_projected[gdf_multiline_projected['is_main_country']].copy()
     gdf_multiline_projected_main['geometry'] = \
-        gdf_multiline_projected_main['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_M[1], preserve_topology=True)
+        gdf_multiline_projected_main['geometry'].simplify(tolerance=SIMPLIFY_TOLERANCE_NETWORK_M[1], preserve_topology=True)
     gdf_point_projected_main = gdf_point_projected[gdf_point_projected['is_main_country']]
 
     # Convert the enriched result back to WGS84
@@ -412,6 +413,8 @@ def process_osm_data():
     gdf_multiline_main = gdf_multiline_projected_main.to_crs(epsg=4326)
     
     # Dissolve all geometries in a GeoDataFrame into one combined geometry
+    gdf_multiline = gdf_multiline[["geometry"]]
+    gdf_multiline_main = gdf_multiline_main[["geometry"]]
     merged = gdf_multiline.geometry.union_all()
     gdf_multiline = gpd.GeoDataFrame(geometry=[merged], crs=gdf_multiline.crs)
     merged = gdf_multiline_main.geometry.union_all()
@@ -423,13 +426,18 @@ def process_osm_data():
     os.makedirs(OUTPUT_FOLDER_FULL, exist_ok=True)
     os.makedirs(OUTPUT_FOLDER_LITE, exist_ok=True)
     
-    # main outputs
-    gdf_multiline.to_file(Path(OUTPUT_FOLDER_FULL) / MULTILINE_GEOJSON_NAME, driver='GeoJSON')
+    # main outputs for geoprocessing
     gdf_multiline_projected.to_parquet(Path(OUTPUT_FOLDER_FULL) / MULTILINE_PROJECTED_PARQUET_NAME, engine="pyarrow")
     gdf_point_projected.to_parquet(Path(OUTPUT_FOLDER_FULL) / POINT_PROJECTED_PARQUET_NAME, engine="pyarrow")
-    gdf_multiline_main.to_file(Path(OUTPUT_FOLDER_LITE) / MULTILINE_GEOJSON_NAME, driver='GeoJSON')
     gdf_multiline_projected_main.to_parquet(Path(OUTPUT_FOLDER_LITE) / MULTILINE_PROJECTED_PARQUET_NAME, engine="pyarrow")
     gdf_point_projected_main.to_parquet(Path(OUTPUT_FOLDER_LITE) / POINT_PROJECTED_PARQUET_NAME, engine="pyarrow")
+
+    # main outputs for mapping (will be served directly)
+    with gzip.open(Path("app") / "assets" / MULTILINE_GEOJSON_GZ_NAME_FULL, "wt", encoding="utf-8") as f:
+        f.write(gdf_multiline.to_json())
+    with gzip.open(Path("app") / "assets" / MULTILINE_GEOJSON_GZ_NAME_LITE, "wt", encoding="utf-8") as f:
+        f.write(gdf_multiline_main.to_json())
+
     print("[INFO] All outputs saved successfully.")
 
 if __name__ == "__main__":
