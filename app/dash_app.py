@@ -2,7 +2,6 @@ from core.common import *
 from app.constants import *
 from app.geoprocessing import *
 from app.utils import *
-import json
 import base64
 import threading
 import psutil
@@ -985,9 +984,6 @@ def start_processing(_, upload_filename, sample_filename, file_ready,
     Output("sample-file-dropdown", "disabled"),
     Output("tab-upload-content", "disabled"),
     Output("tab-sample-content", "disabled"),
-    Output("year-slider", "min"),
-    Output("year-slider", "max"),
-    Output("year-slider", "value"),
     Output("btn-cancel", "style"),
     Output("btn-cancel", "disabled"),
     Input("progress-poller", "n_intervals"), # initially None
@@ -998,6 +994,13 @@ def start_processing(_, upload_filename, sample_filename, file_ready,
     prevent_initial_call=True
 )
 def update_progress(*args):
+    """Poll and update the user's processing progress.
+
+    Periodically updates the progress bar, status label, and related UI
+    elements (buttons, tabs, and cancel state) based on the user's
+    background processing thread. Handles normal completion and
+    cancellation, cleaning up session resources when finished.
+    """
     # Get active tab
     active_tab = args[-2]
     user_id = args[-1]
@@ -1022,7 +1025,7 @@ def update_progress(*args):
     style_cancel = {"visibility": "visible"}
     poller_disabled = False
     cancel_disabled = False
-    store_data, min_year, max_year, slider_val = (no_update,) * 4
+    store_data = no_update
     upload_tab_disabled = (active_tab == "tab-sample")
     sample_tab_disabled = not upload_tab_disabled
 
@@ -1068,9 +1071,6 @@ def update_progress(*args):
     elif status == "finished":
         # Normal completion
         store_data = progress_data[user_id].get("store_data")
-        min_year = store_data["track_date_years"]["min"]
-        max_year = store_data["track_date_years"]["max"]
-        slider_val = [min_year, max_year]
         style_cancel = {"visibility": "hidden"}
         # Wait 3s before progress bar reset
         if time.time() - finished_at >= 3:
@@ -1091,21 +1091,34 @@ def update_progress(*args):
         label,
         poller_disabled,
         current_task,
-        btn_disabled,
-        btn_disabled,
+        btn_disabled, # btn-process
+        btn_disabled, # btn-download
         href,
         style,
         store_data,
-        btn_disabled,
-        btn_disabled,
+        btn_disabled, # upload-zip
+        btn_disabled, # sample-file-dropdown
         upload_tab_disabled,
         sample_tab_disabled,
-        min_year,
-        max_year,
-        slider_val,
         style_cancel,
         cancel_disabled,
     )
+
+@app.callback(
+    Output("year-slider", "min"),
+    Output("year-slider", "max"),
+    Output("year-slider", "value"),
+    Input("geojson-store-full", "data"),
+)
+def update_year_slider(store):
+    """Set the year slider range and value based on the uploaded track data."""
+    if not store: 
+        raise PreventUpdate
+    
+    min_year = store["track_date_years"]["min"]
+    max_year = store["track_date_years"]["max"]
+    slider_val = [min_year, max_year]
+    return min_year, max_year, slider_val
 
 @app.callback(
     Output("kpi-totsegments", "children"),
@@ -1119,7 +1132,6 @@ def update_progress(*args):
 )
 def filter_data(store, date_range):
     """Filter bike segments and nodes by date and compute KPIs."""
-    
     if not store or not store.get("segments", {}).get("features"):
         return None, None, None, MESSAGE_NO_DATA, None, {}
 
@@ -1306,7 +1318,6 @@ def update_node_layer(filtered_data, cluster_radius):
 )
 def update_tables(filtered_data):
     """Aggregate segment and node data for display in Dash tables."""
-    
     if not filtered_data:
         return [], [], [], [], {"display": "none"}, {"display": "none"}, \
             MESSAGE_NO_DATA, MESSAGE_NO_DATA
@@ -1371,7 +1382,6 @@ def update_tables(filtered_data):
     State("year-slider", "value"),
 )
 def update_chart(filtered_data, agg_level, plot_type, element_type, filter_mode, date_range):
-
     if not filtered_data:
         return build_empty_figure(MESSAGE_NO_DATA)
 
