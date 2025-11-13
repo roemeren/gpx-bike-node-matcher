@@ -13,3 +13,4 @@ app/uploads/
 __pycache__/
 notebooks/
 .cache/
+**/.ipynb_checkpoints/
