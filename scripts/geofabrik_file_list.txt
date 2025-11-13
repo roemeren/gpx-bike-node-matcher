@@ -1,6 +1,0 @@
-belgium
-netherlands
-france/nord-pas-de-calais
-germany/niedersachsen
-germany/nordrhein-westfalen
-germany/rheinland-pfalz
