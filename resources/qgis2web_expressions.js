@@ -763,17 +763,3 @@ function fnc__specialcol_(values, context) {
 function fnc_project_color(values, context) {
     return false;
 };
-
-
-
-function exp_label_ExampleIntersections_9_eval_expression(context) {
-    // to_string(round(intersection_length, 0)) || ' / ' || to_string(round(segment_length, 0)) || ' (' || to_string(round(intersection_percentage, 0)) || '%)'
-
-    var feature = context.feature;
-    
-    if (feature.properties) {
-        return (((((fnc_to_string([fnc_round([feature.get('intersection_length') ,0], context)], context) + ' / ') + fnc_to_string([fnc_round([feature.get('segment_length') ,0], context)], context)) + ' (') + fnc_to_string([fnc_round([feature.get('intersection_percentage') ,0], context)], context)) + '%)');
-    } else {
-        return (((((fnc_to_string([fnc_round([feature.get('intersection_length') ,0], context)], context) + ' / ') + fnc_to_string([fnc_round([feature.get('segment_length') ,0], context)], context)) + ' (') + fnc_to_string([fnc_round([feature.get('intersection_percentage') ,0], context)], context)) + '%)');
-    }
-}

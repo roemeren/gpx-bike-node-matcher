@@ -21,7 +21,7 @@ var style_MatchedSegments_8 = function(feature, resolution){
         labelText = String("");
     }
     var style = [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(51,167,170,1.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 1.9}),
+        stroke: new ol.style.Stroke({color: 'rgba(51,167,170,1.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 5.319999999999999}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth)

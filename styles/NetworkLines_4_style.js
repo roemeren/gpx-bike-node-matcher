@@ -1,7 +1,7 @@
 var size = 0;
 var placement = 'point';
 
-var style_MatchedNodes_9 = function(feature, resolution){
+var style_NetworkLines_4 = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}
@@ -9,20 +9,19 @@ var style_MatchedNodes_9 = function(feature, resolution){
     
     var labelText = ""; 
     var value = feature.get("");
-    var labelFont = "13.0px \'Segoe UI\', sans-serif";
-    var labelFill = "#323232";
+    var labelFont = "10px, sans-serif";
+    var labelFill = "#000000";
     var bufferColor = "";
     var bufferWidth = 0;
     var textAlign = "left";
     var offsetX = 0;
     var offsetY = 0;
-    var placement = 'point';
+    var placement = 'line';
     if ("" !== null) {
         labelText = String("");
     }
     var style = [ new ol.style.Style({
-        image: new ol.style.Circle({radius: 6.0 + size,
-            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(51,167,170,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.9}), fill: new ol.style.Fill({color: 'rgba(255,255,255,1.0)'})}),
+        stroke: new ol.style.Stroke({color: 'rgba(176,176,176,1.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 1.14}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth)
