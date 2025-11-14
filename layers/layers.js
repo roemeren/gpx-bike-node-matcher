@@ -78,7 +78,9 @@ var jsonSource_NetworkNodes_5 = new ol.source.Vector({
 jsonSource_NetworkNodes_5.addFeatures(features_NetworkNodes_5);
 var lyr_NetworkNodes_5 = new ol.layer.Vector({
                 declutter: false,
-                source:jsonSource_NetworkNodes_5, 
+                source:jsonSource_NetworkNodes_5,
+maxResolution:70.0111653806549,
+ 
                 style: style_NetworkNodes_5,
                 popuplayertitle: 'Network Nodes',
                 interactive: true,
@@ -114,8 +116,7 @@ var lyr_SegmentMatching_7 = new ol.layer.Vector({
                 interactive: true,
     title: 'Segment Matching<br />\
     <img src="styles/legend/SegmentMatching_7_0.png" /> Not Matched<br />\
-    <img src="styles/legend/SegmentMatching_7_1.png" /> Matched<br />\
-    <img src="styles/legend/SegmentMatching_7_2.png" /> <br />' });
+    <img src="styles/legend/SegmentMatching_7_1.png" /> Matched<br />' });
 var format_MatchedSegments_8 = new ol.format.GeoJSON();
 var features_MatchedSegments_8 = format_MatchedSegments_8.readFeatures(json_MatchedSegments_8, 
             {dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857'});

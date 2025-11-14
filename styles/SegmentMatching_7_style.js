@@ -19,14 +19,6 @@ case '1':
                               labelFill, placement, bufferColor,
                               bufferWidth)
     })];
-                    break;
-default:
-                    return [ new ol.style.Style({
-        stroke: new ol.style.Stroke({color: 'rgba(98,156,203,0.0)', lineDash: null, lineCap: 'square', lineJoin: 'bevel', width: 11.399999999999999}),
-        text: createTextStyle(feature, resolution, labelText, labelFont,
-                              labelFill, placement, bufferColor,
-                              bufferWidth)
-    })];
                     break;}};
 
 var style_SegmentMatching_7 = function(feature, resolution){
