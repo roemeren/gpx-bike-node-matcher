@@ -19,7 +19,9 @@ an interactive map, and download the results.
 
 ## Demo
 
-A live demo of the app is available on [Render](https://gpx-bike-node-matcher.onrender.com).
+A live demo of the app is available on Render:
+
+🔗 **https://gpx-bike-node-matcher.onrender.com**
 
 To try it out:
 
@@ -75,6 +77,20 @@ The hosted version currently includes **only the Belgian bike node network and u
 ## Data
 
 The underlying bike network data come from [Geofabrik OSM extracts](https://download.geofabrik.de/europe.html).
+
+---
+
+## QGIS Web Map & Geoprocessing Flow
+
+A simplified, interactive **QGIS web map** showing the key input layers and the main steps of the matching process is available here:
+
+🔗 **https://roemeren.github.io/gpx-bike-node-matcher/**
+
+For a full explanation of the underlying **QGIS geoprocessing workflow**, including all intermediate layers, see the [accompanying wiki page](https://github.com/roemeren/gpx-bike-node-matcher/wiki/QGIS-Geoprocessing-Demo):
+
+You can also find the complete original QGIS project — together with example inputs, intermediate files, and final outputs — under:
+
+`examples/qgis_demo/`
 
 ---
 
