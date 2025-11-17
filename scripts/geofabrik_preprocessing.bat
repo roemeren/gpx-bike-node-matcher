@@ -48,6 +48,11 @@ echo [INFO] Filtering OSM data for rcn network relations
 osmium tags-filter "data\raw\\%FILENAME%" r/network=rcn -o data\intermediate\rcn_relations.osm.pbf --overwrite
 echo [INFO] Extracted rcn relations
 
+REM --- Save raw relations ---
+echo [INFO] Dumping rcn relations for future Python processing
+osmium cat data\intermediate\rcn_relations.osm.pbf -t relation -f xml -o data\intermediate\%REGION%_relations.xml --overwrite
+echo [INFO] Saved raw rcn relations
+
 echo [INFO] Filtering OSM data for rcn_ref points
 osmium tags-filter data\intermediate\rcn_relations.osm.pbf n/rcn_ref -o data\intermediate\rcn_ref_points.osm.pbf --overwrite
 echo [INFO] Extracted rcn_ref points
@@ -59,6 +64,7 @@ if exist data/intermediate/rcn_output.gpkg (
 ) else (
     ogr2ogr -f "GPKG" data\intermediate\rcn_output.gpkg data\intermediate\rcn_relations.osm.pbf multilinestrings -nln %REGION%_multiline
 )
+ogr2ogr -f "GPKG" -update data\intermediate\rcn_output.gpkg data\intermediate\rcn_relations.osm.pbf lines -nln %REGION%_line -overwrite
 ogr2ogr -f "GPKG" -update data\intermediate\rcn_output.gpkg data\intermediate\rcn_ref_points.osm.pbf points -nln %REGION%_point -overwrite
 echo [INFO] GeoPackage updated: data\intermediate\rcn_output.gpkg
 

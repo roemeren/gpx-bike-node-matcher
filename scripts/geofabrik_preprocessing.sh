@@ -16,11 +16,16 @@ echo "[INFO] Input file date: $DATE"
 
 # --- Filter OSM data ---
 RCN_RELATIONS="$RESULTS_DIR/rcn_relations.osm.pbf"
+RCN_RELATIONS_RAW="$RESULTS_DIR/${REGION}_relations.xml"
 RCN_POINTS="$RESULTS_DIR/rcn_ref_points.osm.pbf"
 
 echo "[INFO] Filtering OSM relations (network=rcn)..."
 osmium tags-filter "$INPUT_FILE" r/network=rcn -o "$RCN_RELATIONS" --overwrite
 echo "[INFO] Relations saved to: $RCN_RELATIONS"
+
+echo "[INFO] Dumping rcn relations for future Python processing..."
+osmium cat "$RCN_RELATIONS" -t relation -f xml -o "$RCN_RELATIONS_RAW" --overwrite
+echo "[INFO] Raw relations saved to: $RCN_RELATIONS_RAW"
 
 echo "[INFO] Filtering OSM points (rcn_ref)..."
 osmium tags-filter "$RCN_RELATIONS" n/rcn_ref -o "$RCN_POINTS" --overwrite
@@ -29,6 +34,7 @@ echo "[INFO] Points saved to: $RCN_POINTS"
 # --- Create GeoPackage ---
 OUTPUT_GPKG="$RESULTS_DIR/rcn_output.gpkg"
 LAYER_NAME_MULTILINE="${REGION}_multiline"
+LAYER_NAME_LINE="${REGION}_line"
 LAYER_NAME_POINT="${REGION}_point"
 
 if [ -f "$OUTPUT_GPKG" ]; then
@@ -39,6 +45,10 @@ else
     ogr2ogr -f "GPKG" "$OUTPUT_GPKG" "$RCN_RELATIONS" multilinestrings -nln "$LAYER_NAME_MULTILINE"
 fi
 echo "[INFO] Added multilinestrings layer '$LAYER_NAME_MULTILINE' to GeoPackage"
+
+# raw OSM street ways (finer detail than the bike-network multilinestrings)
+ogr2ogr -f "GPKG" -update "$OUTPUT_GPKG" "$RCN_RELATIONS" lines -nln "$LAYER_NAME_LINE" -overwrite
+echo "[INFO] Added lines layer to GeoPackage"
 
 ogr2ogr -f "GPKG" -update "$OUTPUT_GPKG" "$RCN_POINTS" points -nln "$LAYER_NAME_POINT" -overwrite
 echo "[INFO] Added points layer to GeoPackage"

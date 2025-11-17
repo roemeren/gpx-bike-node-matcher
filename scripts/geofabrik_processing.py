@@ -187,6 +187,10 @@ def load_gpkg_layers_by_suffix(gpkg_path):
             gdf = gpd.read_file(gpkg_path, layer=layer_name)
             gdf["source_layer"] = layer_name  # track origin
             gdf_point_list.append(gdf)
+        elif layer_name.endswith("line"):
+            # not loading lines for now; bike network processing only needs 'multiline' + 'point'
+            # keeping this block for potential future use (surface, maxspeed, etc.)
+            pass
 
     # Combine all multilines or points into single GeoDataFrames
     gdf_multiline = (
