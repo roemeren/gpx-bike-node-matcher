@@ -52,6 +52,8 @@ bike_network_seg = gpd.read_parquet(seg_path_parquet)
 bike_network_node = gpd.read_parquet(node_path_parquet)
 # print(f"Memory usage after loading node parquet {process.memory_info().rss / 1024**2:.2f} MB")
 
+CARTO_API_KEY = os.environ["CARTO_API_KEY"]
+
 # --- initialize app ---
 # Themes: see https://www.dash-bootstrap-components.com/docs/themes/explorer/
 app = Dash(__name__, external_stylesheets=[dbc.themes.ZEPHYR])
@@ -508,7 +510,7 @@ app.layout = dbc.Container(
                                         [
                                             dl.BaseLayer(
                                                 dl.TileLayer(
-                                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key={CARTO_API_KEY}",
                                                     attribution='&copy; OSM &copy; <a href="https://carto.com/">CARTO</a>'
                                                 ),
                                                 name="Carto Light",
@@ -516,7 +518,7 @@ app.layout = dbc.Container(
                                             ),
                                             dl.BaseLayer(
                                                 dl.TileLayer(
-                                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+                                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key={CARTO_API_KEY}",
                                                     attribution='&copy; OSM &copy; CARTO'
                                                 ),
                                                 name="Carto Voyager Lite",
