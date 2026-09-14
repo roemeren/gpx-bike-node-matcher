@@ -510,7 +510,7 @@ app.layout = dbc.Container(
                                         [
                                             dl.BaseLayer(
                                                 dl.TileLayer(
-                                                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key={CARTO_API_KEY}",
+                                                    url=f"https://{{s}}.basemaps.cartocdn.com/light_all/{{z}}/{{x}}/{{y}}{{r}}.png?key={CARTO_API_KEY}",
                                                     attribution='&copy; OSM &copy; <a href="https://carto.com/">CARTO</a>'
                                                 ),
                                                 name="Carto Light",
@@ -518,7 +518,7 @@ app.layout = dbc.Container(
                                             ),
                                             dl.BaseLayer(
                                                 dl.TileLayer(
-                                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key={CARTO_API_KEY}",
+                                                    url=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/voyager/{{z}}/{{x}}/{{y}}{{r}}.png?key={CARTO_API_KEY}",
                                                     attribution='&copy; OSM &copy; CARTO'
                                                 ),
                                                 name="Carto Voyager Lite",
